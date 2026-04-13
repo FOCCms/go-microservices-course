@@ -2,8 +2,7 @@ syntax = "proto3";
 
 package payment.v1;
 
-// TODO: Заменить на актуальный go_package
-option go_package = "github.com/student/shared/pkg/proto/payment/v1;paymentv1";
+option go_package = "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1;paymentv1";
 
 // PaymentService обрабатывает оплату заказов
 service PaymentService {

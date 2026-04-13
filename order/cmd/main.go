@@ -8,9 +8,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	orderHandler "github.com/student/order/pkg/handler"
-	inventoryv1 "github.com/student/shared/pkg/proto/inventory/v1"
-	paymentv1 "github.com/student/shared/pkg/proto/payment/v1"
+	orderHandler "github.com/FOCCms/go-microservices-course/order/pkg/handler"
+	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
+	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 )
 
 const (

@@ -2,8 +2,7 @@ syntax = "proto3";
 
 package inventory.v1;
 
-// TODO: Заменить на актуальный go_package
-option go_package = "github.com/student/shared/pkg/proto/inventory/v1;inventoryv1";
+option go_package = "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1;inventoryv1";
 
 import "google/protobuf/timestamp.proto";
 
