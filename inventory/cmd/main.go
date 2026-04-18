@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	grpcAddress               = "127.0.0.1:50051"
+	grpcAddress               = ":50051"
 	grpcMaxConnectionIdle     = 15 * time.Minute
 	grpcMaxConnectionAge      = 30 * time.Minute
 	grpcMaxConnectionAgeGrace = 10 * time.Second
