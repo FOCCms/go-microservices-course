@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -22,10 +20,15 @@ import (
 )
 
 const (
-	inventoryServiceAddress = "localhost:50051"
-	paymentServiceAddress   = "localhost:50052"
-	httpPort                = "8080"
+	inventoryServiceAddress          = "localhost:50051"
+	inventoryServiceKeepaliveTime    = 30 * time.Second
+	inventoryServiceKeepaliveTimeout = 3 * time.Second
 
+	paymentServiceAddress          = "localhost:50052"
+	paymentServiceKeepaliveTime    = 30 * time.Second
+	paymentServiceKeepaliveTimeout = 3 * time.Second
+
+	httpPort          = "8080"
 	shutdownTimeout   = 10 * time.Second
 	readHeaderTimeout = 5 * time.Second
 	readTimeout       = 15 * time.Second
@@ -34,39 +37,41 @@ const (
 )
 
 func main() {
-	if err := run(); err != nil {
-		slog.Error("приложение завершилось с ошибкой", "error", err)
-		os.Exit(1)
-	}
-}
-
-func run() error {
 	// Создать gRPC соединение с InventoryService
 	inventoryConn, err := grpc.NewClient(inventoryServiceAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                30 * time.Second,
-			Timeout:             3 * time.Second,
+			Time:                inventoryServiceKeepaliveTime,
+			Timeout:             inventoryServiceKeepaliveTimeout,
 			PermitWithoutStream: true,
 		}))
 	if err != nil {
-		return fmt.Errorf("не удалось подключиться к InventoryService: %w", err)
+		slog.Error("не удалось подключиться к InventoryService", "error", err)
+		return
 	}
-	defer inventoryConn.Close()
+	defer func() {
+		if closeErr := inventoryConn.Close(); closeErr != nil {
+			slog.Error("не удалось закрыть соединение с InventoryService", "error", closeErr)
+		}
+	}()
 
 	// Создать gRPC клиент PaymentService
 	paymentConn, err := grpc.NewClient(paymentServiceAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                30 * time.Second,
-			Timeout:             3 * time.Second,
+			Time:                paymentServiceKeepaliveTime,
+			Timeout:             paymentServiceKeepaliveTimeout,
 			PermitWithoutStream: true,
 		}))
 	if err != nil {
-		return fmt.Errorf("не удалось подключиться к PaymentService: %w", err)
+		slog.Error("не удалось подключиться к PaymentService", "error", err)
+		return
 	}
-
-	defer paymentConn.Close()
+	defer func() {
+		if closeErr := paymentConn.Close(); closeErr != nil {
+			slog.Error("не удалось закрыть соединение с PaymentService", "error", closeErr)
+		}
+	}()
 
 	// Создаём хранилище и обработчик
 	store := orderHandler.NewOrderStore()
@@ -79,7 +84,8 @@ func run() error {
 	// Создать OpenAPI сервер
 	orderServer, err := orderHandler.SetupServer(h)
 	if err != nil {
-		return fmt.Errorf("ошибка создания сервера OpenAPI: %w", err)
+		slog.Error("ошибка создания сервера OpenAPI", "error", err)
+		return
 	}
 
 	server := &http.Server{
@@ -118,6 +124,4 @@ func run() error {
 	}
 
 	slog.Info("✅ сервер остановлен")
-
-	return nil
 }

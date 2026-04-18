@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"net"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -28,11 +27,10 @@ const (
 )
 
 func main() {
-	lc := net.ListenConfig{}
-	lis, err := lc.Listen(context.Background(), "tcp", grpcAddress)
+	lis, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", grpcAddress)
 	if err != nil {
 		slog.Error("не удалось создать listener", "error", err)
-		os.Exit(1)
+		return
 	}
 
 	grpcServer := grpc.NewServer(
