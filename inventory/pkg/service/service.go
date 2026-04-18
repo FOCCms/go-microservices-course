@@ -129,7 +129,7 @@ func (s *InventoryServer) GetPart(
 	}
 
 	return &inventoryv1.GetPartResponse{
-		Part: toProto(part),
+		Part: partToProto(part),
 	}, nil
 }
 
@@ -145,7 +145,6 @@ func (s *InventoryServer) ListParts(
 		defer s.mu.RUnlock()
 
 		for _, partId := range req.GetUuids() {
-
 			if partId == "" {
 				return nil, status.Errorf(codes.InvalidArgument, "uuid не указан")
 			}
@@ -161,8 +160,7 @@ func (s *InventoryServer) ListParts(
 				return nil, status.Errorf(codes.NotFound, "деталь не найдена, uuid: %s", partId)
 			}
 
-			parts = append(parts, toProto(part))
-
+			parts = append(parts, partToProto(part))
 		}
 
 		return &inventoryv1.ListPartsResponse{Parts: parts}, nil
@@ -172,13 +170,11 @@ func (s *InventoryServer) ListParts(
 	parts := make([]*inventoryv1.Part, 0, len(s.parts))
 
 	for _, part := range s.parts {
-
 		if req.GetPartType() != inventoryv1.PartType_PART_TYPE_UNSPECIFIED && part.PartType != req.GetPartType() {
 			continue
 		}
 
-		parts = append(parts, toProto(part))
-
+		parts = append(parts, partToProto(part))
 	}
 	s.mu.RUnlock()
 
@@ -187,16 +183,4 @@ func (s *InventoryServer) ListParts(
 	})
 
 	return &inventoryv1.ListPartsResponse{Parts: parts}, nil
-}
-
-func toProto(part Part) *inventoryv1.Part {
-	return &inventoryv1.Part{
-		Uuid:          part.UUID,
-		Name:          part.Name,
-		Description:   part.Description,
-		Price:         part.Price,
-		PartType:      part.PartType,
-		StockQuantity: part.StockQuantity,
-		CreatedAt:     part.CreatedAt,
-	}
 }
