@@ -99,10 +99,10 @@ tasks:
     desc: "Запускает линтинг в CI"
     deps: [golangci-lint:install]
     cmds:
-      - '{{.GOLANGCI_LINT}} run .order/... --config=.golangci.yml'
-      - '{{.GOLANGCI_LINT}} run .inventory/... --config=.golangci.yml'
-      - '{{.GOLANGCI_LINT}} run .payment/... --config=.golangci.yml'
-      - '{{.GOLANGCI_LINT}} run .shared/... --config=.golangci.yml'
+      - '{{.GOLANGCI_LINT}} run ./order/... --config=.golangci.yml'
+      - '{{.GOLANGCI_LINT}} run ./inventory/... --config=.golangci.yml'
+      - '{{.GOLANGCI_LINT}} run ./payment/... --config=.golangci.yml'
+      - '{{.GOLANGCI_LINT}} run ./shared/... --config=.golangci.yml'
 
   proto:lint:
     desc: "Проверяет .proto-файлы линтером"
