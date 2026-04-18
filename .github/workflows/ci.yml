@@ -21,15 +21,12 @@ jobs:
       - name: Install Task
         run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ./bin
 
-      - name: Update Dependencies
-        run: ./bin/task deps:update
-
       # Запускаем проверки
       - name: Format Check
         run: ./bin/task format
 
       - name: Lint
-        run: ./bin/task lint
+        run: ./bin/task ci:lint
 
       - name: API Tests
         run: ./bin/task test:api
