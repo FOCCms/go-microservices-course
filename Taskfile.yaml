@@ -60,6 +60,15 @@ tasks:
       - test -x {{.PROTOC_GEN_GO}}
       - test -x {{.PROTOC_GEN_GO_GRPC}}
 
+  proto:format:
+    desc: "Форматирует .proto-файлы"
+    deps: [buf:install]
+    dir: shared/proto
+    cmds:
+      - echo '🧹 Форматируем .proto-файлы...'
+      - '{{.BUF}} format -w .'
+
+
   ogen:install:
     desc: "Устанавливает ogen"
     cmds:
