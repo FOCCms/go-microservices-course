@@ -57,18 +57,20 @@ func main() {
 
 	slog.Info("запуск InventoryService", "адрес", grpcAddress)
 
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
 	go func() {
 		slog.Info("🚀 gRPC сервер запущен", "address", grpcAddress)
 		if serveErr := grpcServer.Serve(lis); serveErr != nil {
 			slog.Error("ошибка запуска сервера", "error", serveErr)
+			cancel() // будим main, чтобы не висеть бесконечно
 		}
 	}()
 
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	slog.Info("🛑 остановка gRPC сервера...")
+	// Ждём сигнал от ОС или падение сервера.
+	<-ctx.Done()
+	slog.Info("🛑 остановка gRPC сервера")
 	grpcServer.GracefulStop()
 	slog.Info("✅ сервер остановлен")
 }

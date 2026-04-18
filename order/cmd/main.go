@@ -91,25 +91,28 @@ func run() error {
 		IdleTimeout:       idleTimeout,       // Таймаут keep-alive соединений
 	}
 
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
 	go func() {
 		slog.Info("🚀 HTTP-сервер запущен на порту", "port", httpPort)
 		listenErr := server.ListenAndServe()
 		if listenErr != nil && !errors.Is(listenErr, http.ErrServerClosed) {
 			slog.Error("❌ ошибка запуска сервера", "error", listenErr)
+			cancel() // будим main, чтобы не висеть бесконечно
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	// Ждём сигнал от ОС или падение сервера.
+	<-ctx.Done()
 
 	slog.Info("🛑 завершение работы сервера...")
 
 	// Создаем контекст с таймаутом для остановки сервера
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer shutdownCancel()
 
-	err = server.Shutdown(ctx)
+	err = server.Shutdown(shutdownCtx)
 	if err != nil {
 		slog.Error("❌ ошибка при остановке сервера", "error", err)
 	}
