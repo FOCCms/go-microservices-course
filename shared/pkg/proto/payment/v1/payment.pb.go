@@ -137,7 +137,7 @@ func (x *PayOrderRequest) GetPaymentMethod() PaymentMethod {
 	return PaymentMethod_PAYMENT_METHOD_UNSPECIFIED
 }
 
-// TODO: Реализовать PayOrderResponse
+// Ответ на оплату заказа
 type PayOrderResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// UUID транзакции оплаты
