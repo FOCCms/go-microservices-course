@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	svc "github.com/FOCCms/go-microservices-course/payment/pkg/service"
+	svc "github.com/FOCCms/go-microservices-course/payment/pkg/app/service"
 	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 )
 

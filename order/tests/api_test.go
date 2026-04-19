@@ -18,10 +18,10 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
-	invSvc "github.com/FOCCms/go-microservices-course/inventory/pkg/service"
+	invSvc "github.com/FOCCms/go-microservices-course/inventory/pkg/app/service"
 	orderHandler "github.com/FOCCms/go-microservices-course/order/pkg/handler"
 	"github.com/FOCCms/go-microservices-course/order/tests/testutil"
-	paySvc "github.com/FOCCms/go-microservices-course/payment/pkg/service"
+	paySvc "github.com/FOCCms/go-microservices-course/payment/pkg/app/service"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 )
