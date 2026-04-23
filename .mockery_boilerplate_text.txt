@@ -1,0 +1,3 @@
+// TODO: Поменяй имя на своё
+// Code generated for FOCCms service
+// © FOCCms 2026.
