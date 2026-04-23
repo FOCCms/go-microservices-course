@@ -12,8 +12,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	svc "github.com/FOCCms/go-microservices-course/inventory/pkg/app/service"
-	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
+	"github.com/FOCCms/go-microservices-course/inventory/pkg/app"
 )
 
 const (
@@ -33,7 +32,7 @@ func main() {
 		return
 	}
 
-	grpcServer := grpc.NewServer(
+	opts := []grpc.ServerOption{
 		grpc.KeepaliveParams(
 			keepalive.ServerParameters{
 				MaxConnectionIdle:     grpcMaxConnectionIdle,
@@ -46,9 +45,12 @@ func main() {
 			MinTime:             grpcMinPingInterval,
 			PermitWithoutStream: true,
 		}),
-	)
+	}
+	opts = append(opts, app.Interceptors()...)
 
-	inventoryv1.RegisterInventoryServiceServer(grpcServer, svc.NewInventoryServer())
+	grpcServer := grpc.NewServer(opts...)
+
+	app.RegisterServices(grpcServer)
 
 	// Включаем reflection для postman/grpcurl
 	reflection.Register(grpcServer)
