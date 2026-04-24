@@ -6,6 +6,7 @@ require (
 	github.com/FOCCms/go-microservices-course/inventory v0.0.0-00010101000000-000000000000
 	github.com/FOCCms/go-microservices-course/payment v0.0.0-00010101000000-000000000000
 	github.com/FOCCms/go-microservices-course/shared v0.0.0-00010101000000-000000000000
+	github.com/brianvoe/gofakeit/v7 v7.14.1
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/grpc v1.79.2
@@ -28,6 +29,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.42.0 // indirect
 	go.opentelemetry.io/otel/metric v1.42.0 // indirect

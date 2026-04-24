@@ -38,7 +38,7 @@ func parseOptionalUUID(s *string) *uuid.UUID {
 
 func ModelOrderToRecordOrder(order model.Order) record.Order {
 	return record.Order{
-		UUID:            order.HullUUID.String(),
+		UUID:            order.UUID.String(),
 		HullUUID:        order.HullUUID.String(),
 		EngineUUID:      order.EngineUUID.String(),
 		ShieldUUID:      uuidToOptionalString(order.ShieldUUID),

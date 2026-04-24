@@ -30,7 +30,7 @@ func (c *client) PayOrder(ctx context.Context, orderUUID uuid.UUID, method model
 	if err != nil {
 		st, ok := status.FromError(err)
 		if ok && st.Code() == codes.NotFound {
-			return uuid.Nil, errs.ErrPartNotFound
+			return uuid.Nil, errs.ErrOrderNotFound
 		}
 		return uuid.Nil, fmt.Errorf("оплатить заказ: %w", err)
 	}

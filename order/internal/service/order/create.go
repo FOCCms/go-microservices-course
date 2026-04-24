@@ -46,7 +46,10 @@ func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 		CreatedAt:  time.Now(),
 	}
 
-	s.orderRepository.Create(ctx, order)
+	err = s.orderRepository.Create(ctx, order)
+	if err != nil {
+		return model.Order{}, err
+	}
 
 	return order, nil
 }

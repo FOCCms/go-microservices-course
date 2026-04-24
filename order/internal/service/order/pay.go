@@ -17,6 +17,12 @@ func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMet
 	}
 
 	if order.Status != model.OrderStatusPendingPayment {
+		if order.Status == model.OrderStatusPaid {
+			return uuid.Nil, errs.ErrOrderAlreadyPaid
+		}
+		if order.Status == model.OrderStatusCancelled {
+			return uuid.Nil, errs.ErrOrderCancelled
+		}
 		return uuid.Nil, errs.ErrOrderStatusConflict
 	}
 
@@ -25,20 +31,14 @@ func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMet
 		return uuid.Nil, err
 	}
 
-	order, err = s.orderRepository.Get(ctx, id)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("оплатить заказ: %w", err)
-	}
-
-	if order.Status != model.OrderStatusPendingPayment {
-		return uuid.Nil, errs.ErrOrderStatusConflict
-	}
-
 	order.PaymentMethod = &method
 	order.Status = model.OrderStatusPaid
 	order.TransactionUUID = &transactionUUID
 
-	s.orderRepository.Update(ctx, order)
+	err = s.orderRepository.Update(ctx, order)
+	if err != nil {
+		return uuid.Nil, err
+	}
 
 	return transactionUUID, nil
 }
