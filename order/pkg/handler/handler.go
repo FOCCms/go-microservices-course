@@ -205,12 +205,10 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *orderv1.CreateOrder
 	}
 
 	if req.ShieldUUID.IsSet() {
-		val := req.ShieldUUID.Value
-		order.ShieldUUID = &val
+		order.ShieldUUID = new(req.ShieldUUID.Value)
 	}
 	if req.WeaponUUID.IsSet() {
-		val := req.WeaponUUID.Value
-		order.WeaponUUID = &val
+		order.WeaponUUID = new(req.WeaponUUID.Value)
 	}
 
 	h.store.mu.Lock()

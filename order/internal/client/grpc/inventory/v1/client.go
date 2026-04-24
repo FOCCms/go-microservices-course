@@ -1,0 +1,43 @@
+package v1
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/FOCCms/go-microservices-course/order/internal/client/grpc/inventory/v1/converter"
+	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
+	"github.com/FOCCms/go-microservices-course/order/internal/model"
+	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
+)
+
+type client struct {
+	inventoryClient inventoryv1.InventoryServiceClient
+}
+
+func New(c inventoryv1.InventoryServiceClient) *client {
+	return &client{inventoryClient: c}
+}
+
+func (c *client) ListParts(ctx context.Context, uuids []uuid.UUID) ([]model.Part, error) {
+	uuidsStr := make([]string, len(uuids))
+	for i, u := range uuids {
+		uuidsStr[i] = u.String()
+	}
+
+	resp, err := c.inventoryClient.ListParts(ctx, &inventoryv1.ListPartsRequest{
+		Uuids: uuidsStr,
+	})
+	if err != nil {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.NotFound {
+			return nil, errs.ErrPartNotFound
+		}
+		return nil, fmt.Errorf("получить список деталей: %w", err)
+	}
+
+	return converter.PartsToModel(resp.GetParts()), nil
+}
