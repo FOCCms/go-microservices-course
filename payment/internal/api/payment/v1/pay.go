@@ -27,7 +27,7 @@ func (a *api) PayOrder(ctx context.Context, req *paymentv1.PayOrderRequest) (*pa
 			return nil, status.Errorf(codes.InvalidArgument, "неверный формат uuid: %s", req.GetOrderUuid())
 		}
 		if errors.Is(err, errs.ErrInvalidPaymentMethod) {
-			return nil, status.Errorf(codes.NotFound, "неверный payment_method: %s", req.GetPaymentMethod())
+			return nil, status.Errorf(codes.InvalidArgument, "неверный payment_method: %s", req.GetPaymentMethod())
 		}
 		return nil, status.Errorf(codes.Internal, "ошибка оплаты: %v", err)
 	}

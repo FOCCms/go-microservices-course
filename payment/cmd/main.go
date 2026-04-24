@@ -32,7 +32,8 @@ func main() {
 		return
 	}
 
-	opts := []grpc.ServerOption{
+	opts := make([]grpc.ServerOption, 0, 2+len(app.Interceptors()))
+	opts = append(opts,
 		grpc.KeepaliveParams(
 			keepalive.ServerParameters{
 				MaxConnectionIdle:     grpcMaxConnectionIdle,
@@ -44,8 +45,7 @@ func main() {
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             grpcMinPingInterval,
 			PermitWithoutStream: true,
-		}),
-	}
+		}))
 	opts = append(opts, app.Interceptors()...)
 
 	grpcServer := grpc.NewServer(opts...)
