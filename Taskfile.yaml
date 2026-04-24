@@ -145,7 +145,7 @@ tasks:
     cmds:
       - go test -v ./order/tests/...
 
-mockery:install:
+  mockery:install:
     desc: "Устанавливает mockery"
     cmds:
       - echo '📦 Устанавливаем mockery...'
@@ -153,26 +153,26 @@ mockery:install:
     status:
       - test -x {{.MOCKERY}}
 
-mocks:gen:
+  mocks:gen:
     desc: "Генерирует моки интерфейсов"
     deps: [mockery:install]
     cmds:
       - echo '🧪 Генерация моков...'
       - '{{.MOCKERY}}'
 
-test:
+  test:
     desc: "Запускает unit-тесты с race-детектором"
     cmds:
       - for mod in order inventory payment; do echo "=== $mod ===" && (cd "$mod" && go test -v -race -count=1 ./...); done
 
-coverage:clean:
+  coverage:clean:
     desc: "Очищает директорию с отчётами покрытия"
     internal: true
     cmds:
       - rm -rf {{.COVERAGE_DIR}}
       - mkdir -p {{.COVERAGE_DIR}}
 
-test:coverage:
+  test:coverage:
     desc: "Тесты с покрытием бизнес-логики"
     deps: [coverage:clean]
     vars:
@@ -201,7 +201,7 @@ test:coverage:
       - go tool cover -func={{.COVERAGE_FILE}}
       - task: coverage:threshold
 
-coverage:threshold:
+  coverage:threshold:
     desc: "Проверяет соответствие покрытия порогу"
     internal: true
     vars:
@@ -215,7 +215,7 @@ coverage:threshold:
       - cmd: test $(echo "{{.COVERAGE}} >= {{.COVERAGE_THRESHOLD}}" | bc) -eq 1
       - echo "✅ Покрытие соответствует порогу"
 
-coverage:html:
+  coverage:html:
     desc: "Генерирует HTML-отчёт покрытия"
     deps: [test:coverage]
     vars:
@@ -230,7 +230,7 @@ coverage:html:
       - cmd: start {{.HTML_FILE}}
         platforms: [windows]
 
-coverage:check:
+  coverage:check:
     desc: "Проверяет покрытие без запуска тестов"
     cmds:
       - task: coverage:threshold
