@@ -4,9 +4,10 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/google/uuid"
+
 	errs "github.com/FOCCms/go-microservices-course/payment/internal/errors"
 	"github.com/FOCCms/go-microservices-course/payment/internal/model"
-	"github.com/google/uuid"
 )
 
 // PayOrder обрабатывает оплату заказа.
