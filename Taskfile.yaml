@@ -179,7 +179,7 @@ tasks:
       TARGET_PACKAGES:
         sh: |
           for mod in order inventory payment; do
-            (cd "$mod" && go list ./... | grep -v "/mocks" | grep -E '/(api|service)/')
+            (cd "$mod" && go list ./internal/... | grep -v "/mocks" | grep -E '/(api|service)/')
           done | tr '\n' ','
     preconditions:
       - sh: test -n "{{.TARGET_PACKAGES}}"
@@ -189,7 +189,7 @@ tasks:
       - |
         for mod in order inventory payment; do
           echo "=== $mod ==="
-          (cd "$mod" && go test -v -race -covermode=atomic -coverprofile={{.COVERAGE_DIR}}/${mod}.out -coverpkg={{.TARGET_PACKAGES}} ./...)
+          (cd "$mod" && go test -v -race -covermode=atomic -coverprofile={{.COVERAGE_DIR}}/${mod}.out -coverpkg={{.TARGET_PACKAGES}} ./internal/...)
         done
       - echo "📊 Объединяем отчёты покрытия..."
       - |
