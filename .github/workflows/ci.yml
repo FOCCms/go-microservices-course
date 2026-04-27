@@ -36,7 +36,7 @@ jobs:
         run: task lint
 
   test:
-    name: Test
+    name: Test and Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,3 +58,24 @@ jobs:
 
       - name: API Tests
         run: task test:api
+
+      - name: Unit Tests
+        run: task test
+
+      - name: Coverage Check
+        run: |
+          task test:coverage
+          # Извлекаем число и сохраняем в ENV
+          echo "TOTAL_COVERAGE=$(go tool cover -func=coverage.out | tail -n1 | awk '{print $NF}' | tr -d '%')" >> $GITHUB_ENV
+
+      - name: Update Coverage Badge
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: f5bb77f26d495e7a6d229e6ce5aa2cc6
+          filename: coverage.json
+          label: coverage
+          message: ${{ env.TOTAL_COVERAGE }}%
+          valColorRange: ${{ env.TOTAL_COVERAGE }}
+          maxColorRange: 100
+          minColorRange: 0

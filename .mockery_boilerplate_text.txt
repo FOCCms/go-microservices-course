@@ -1,0 +1,2 @@
+// Code generated for FOCCms service
+// © FOCCms 2026.

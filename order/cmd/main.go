@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
-	orderHandler "github.com/FOCCms/go-microservices-course/order/pkg/handler"
+	"github.com/FOCCms/go-microservices-course/order/pkg/app"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 )
@@ -37,7 +37,7 @@ const (
 )
 
 func main() {
-	// Создать gRPC соединение с InventoryService
+	// Создать gRPC соединение с InventoryService.
 	inventoryConn, err := grpc.NewClient(inventoryServiceAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -55,7 +55,7 @@ func main() {
 		}
 	}()
 
-	// Создать gRPC клиент PaymentService
+	// Создать gRPC клиент PaymentService.
 	paymentConn, err := grpc.NewClient(paymentServiceAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -73,16 +73,8 @@ func main() {
 		}
 	}()
 
-	// Создаём хранилище и обработчик
-	store := orderHandler.NewOrderStore()
-	h := orderHandler.NewOrderHandler(
-		inventoryv1.NewInventoryServiceClient(inventoryConn),
-		paymentv1.NewPaymentServiceClient(paymentConn),
-		store,
-	)
-
-	// Создать OpenAPI сервер
-	orderServer, err := orderHandler.SetupServer(h)
+	// Создать OpenAPI сервер.
+	orderServer, err := app.NewHTTPHandler(inventoryv1.NewInventoryServiceClient(inventoryConn), paymentv1.NewPaymentServiceClient(paymentConn))
 	if err != nil {
 		slog.Error("ошибка создания сервера OpenAPI", "error", err)
 		return
@@ -105,7 +97,7 @@ func main() {
 		listenErr := server.ListenAndServe()
 		if listenErr != nil && !errors.Is(listenErr, http.ErrServerClosed) {
 			slog.Error("❌ ошибка запуска сервера", "error", listenErr)
-			cancel() // будим main, чтобы не висеть бесконечно
+			cancel() // будим main, чтобы не висеть бесконечно.
 		}
 	}()
 
@@ -114,7 +106,7 @@ func main() {
 
 	slog.Info("🛑 завершение работы сервера...")
 
-	// Создаем контекст с таймаутом для остановки сервера
+	// Создаем контекст с таймаутом для остановки сервера.
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer shutdownCancel()
 
