@@ -33,7 +33,7 @@ packages:
       include-interface-regex: ".*Service"
   github.com/FOCCms/go-microservices-course/order/internal/service/order:
     config:
-      include-interface-regex: ".*(Repository|Client)"
+      include-interface-regex: ".*(Repository|Client|TxManager)"
 
   # Inventory service
   github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1:
