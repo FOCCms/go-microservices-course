@@ -13,12 +13,6 @@ import (
 	"testing"
 	"time"
 
-	invApp "github.com/FOCCms/go-microservices-course/inventory/pkg/app"
-	"github.com/FOCCms/go-microservices-course/order/pkg/app"
-	"github.com/FOCCms/go-microservices-course/order/tests/testutil"
-	payApp "github.com/FOCCms/go-microservices-course/payment/pkg/app"
-	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
-	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/google/uuid"
@@ -34,6 +28,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
+
+	invApp "github.com/FOCCms/go-microservices-course/inventory/pkg/app"
+	"github.com/FOCCms/go-microservices-course/order/pkg/app"
+	"github.com/FOCCms/go-microservices-course/order/tests/testutil"
+	payApp "github.com/FOCCms/go-microservices-course/payment/pkg/app"
+	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
+	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 )
 
 // Предзагруженные UUID и цены деталей (из migrations/inventory/00002_seed_parts.sql).

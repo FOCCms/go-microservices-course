@@ -11,7 +11,7 @@ import (
 )
 
 func (s *service) Cancel(ctx context.Context, id uuid.UUID) error {
-	order, err := s.orderRepository.Get(ctx, id)
+	order, err := s.orderRepository.Get(ctx, id.String())
 	if err != nil {
 		return fmt.Errorf("отменить заказ: %w", err)
 	}

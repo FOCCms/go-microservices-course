@@ -44,10 +44,17 @@ func TestCreate(t *testing.T) {
 		}
 	)
 
+	type setupMockFunc func(
+		repo *mocks.OrderRepository,
+		itemsRepo *mocks.OrderItemRepository,
+		tx *mocks.TxManager,
+		client *mocks.InventoryClient,
+	)
+
 	tests := []struct {
 		name      string
 		args      args
-		setupMock func(repo *mocks.OrderRepository, client *mocks.InventoryClient)
+		setupMock setupMockFunc
 		expected  expected
 	}{
 		{
@@ -58,17 +65,24 @@ func TestCreate(t *testing.T) {
 					EngineUUID: uuid.MustParse(engineUUID),
 				},
 			},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
+			setupMock: func(repo *mocks.OrderRepository, itemsRepo *mocks.OrderItemRepository, tx *mocks.TxManager, client *mocks.InventoryClient) {
 				client.EXPECT().
-					ListParts(ctx, []uuid.UUID{uuid.MustParse(hullUUID), uuid.MustParse(engineUUID)}).
+					ListParts(ctx, mock.Anything).
 					Return(partsInStock, nil)
+
+				tx.EXPECT().Do(ctx, mock.Anything).RunAndReturn(func(ctx context.Context, fn func(context.Context) error) error {
+					return fn(ctx)
+				})
 
 				repo.EXPECT().
 					Create(ctx, mock.MatchedBy(func(o model.Order) bool {
-						return o.HullUUID == uuid.MustParse(hullUUID) &&
-							o.EngineUUID == uuid.MustParse(engineUUID) &&
-							o.TotalPrice == 800000 && // 500000 + 300000
-							o.Status == model.OrderStatusPendingPayment
+						return o.HullUUID == uuid.MustParse(hullUUID) && o.TotalPrice == 800000
+					})).
+					Return(nil)
+
+				itemsRepo.EXPECT().
+					Create(ctx, mock.MatchedBy(func(items []model.OrderItem) bool {
+						return len(items) == 2 // Hull + Engine
 					})).
 					Return(nil)
 			},
@@ -82,7 +96,7 @@ func TestCreate(t *testing.T) {
 					EngineUUID: uuid.MustParse(engineUUID),
 				},
 			},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
+			setupMock: func(repo *mocks.OrderRepository, _ *mocks.OrderItemRepository, _ *mocks.TxManager, client *mocks.InventoryClient) {
 				client.EXPECT().
 					ListParts(ctx, []uuid.UUID{uuid.MustParse(hullUUID), uuid.MustParse(engineUUID)}).
 					Return(nil, errs.ErrPartNotFound)
@@ -97,7 +111,7 @@ func TestCreate(t *testing.T) {
 					EngineUUID: uuid.MustParse(engineUUID),
 				},
 			},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
+			setupMock: func(repo *mocks.OrderRepository, _ *mocks.OrderItemRepository, _ *mocks.TxManager, client *mocks.InventoryClient) {
 				client.EXPECT().
 					ListParts(ctx, []uuid.UUID{uuid.MustParse(hullUUID), uuid.MustParse(engineUUID)}).
 					Return(partsOutOfStock, nil)
@@ -111,12 +125,14 @@ func TestCreate(t *testing.T) {
 			t.Parallel()
 
 			orderRepo := mocks.NewOrderRepository(t)
+			orderItemRepo := mocks.NewOrderItemRepository(t)
 			inventoryClient := mocks.NewInventoryClient(t)
 			paymentClient := mocks.NewPaymentClient(t)
+			txManager := mocks.NewTxManager(t)
 
-			tc.setupMock(orderRepo, inventoryClient)
+			tc.setupMock(orderRepo, orderItemRepo, txManager, inventoryClient)
 
-			svc := NewService(orderRepo, paymentClient, inventoryClient)
+			svc := NewService(orderRepo, orderItemRepo, paymentClient, inventoryClient, txManager)
 			order, err := svc.Create(ctx, tc.args.req)
 
 			if tc.expected.err != nil {

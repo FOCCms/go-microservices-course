@@ -11,7 +11,7 @@ import (
 )
 
 func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
-	order, err := s.orderRepository.Get(ctx, id)
+	order, err := s.orderRepository.Get(ctx, id.String())
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("оплатить заказ: %w", err)
 	}

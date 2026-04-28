@@ -19,12 +19,12 @@ func TestCancel(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
-		id uuid.UUID
+		id string
 	}
 
 	var (
 		ctx     = context.Background()
-		orderID = uuid.MustParse(gofakeit.UUID())
+		orderID = gofakeit.UUID()
 	)
 
 	tests := []struct {
@@ -39,7 +39,7 @@ func TestCancel(t *testing.T) {
 			setupMock: func(repo *mocks.OrderRepository) {
 				repo.EXPECT().
 					Get(ctx, orderID).
-					Return(model.Order{UUID: orderID, Status: model.OrderStatusPendingPayment}, nil)
+					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPendingPayment}, nil)
 
 				repo.EXPECT().
 					Update(ctx, mock.MatchedBy(func(o model.Order) bool {
@@ -55,7 +55,7 @@ func TestCancel(t *testing.T) {
 			setupMock: func(repo *mocks.OrderRepository) {
 				repo.EXPECT().
 					Get(ctx, orderID).
-					Return(model.Order{UUID: orderID, Status: model.OrderStatusPaid}, nil)
+					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPaid}, nil)
 			},
 			expectedErr: errs.ErrOrderAlreadyPaid,
 		},
@@ -65,7 +65,7 @@ func TestCancel(t *testing.T) {
 			setupMock: func(repo *mocks.OrderRepository) {
 				repo.EXPECT().
 					Get(ctx, orderID).
-					Return(model.Order{UUID: orderID, Status: model.OrderStatusCancelled}, nil)
+					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusCancelled}, nil)
 			},
 			expectedErr: errs.ErrOrderCancelled,
 		},
@@ -86,13 +86,15 @@ func TestCancel(t *testing.T) {
 			t.Parallel()
 
 			orderRepo := mocks.NewOrderRepository(t)
+			orderItemRepo := mocks.NewOrderItemRepository(t)
 			inventoryClient := mocks.NewInventoryClient(t)
 			paymentClient := mocks.NewPaymentClient(t)
+			txManager := mocks.NewTxManager(t)
 
 			tc.setupMock(orderRepo)
 
-			svc := NewService(orderRepo, paymentClient, inventoryClient)
-			err := svc.Cancel(ctx, tc.args.id)
+			svc := NewService(orderRepo, orderItemRepo, paymentClient, inventoryClient, txManager)
+			err := svc.Cancel(ctx, uuid.MustParse(tc.args.id))
 
 			if tc.expectedErr != nil {
 				require.Error(t, err)

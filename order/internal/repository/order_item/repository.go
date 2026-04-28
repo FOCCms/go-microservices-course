@@ -1,4 +1,4 @@
-package order
+package orderitem
 
 import (
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"

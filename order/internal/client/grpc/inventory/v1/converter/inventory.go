@@ -20,5 +20,21 @@ func PartToModel(p *inventoryv1.Part) model.Part {
 		Name:          p.GetName(),
 		Price:         p.GetPrice(),
 		StockQuantity: p.GetStockQuantity(),
+		PartType:      toPartType(p.GetPartType()),
+	}
+}
+
+func toPartType(t inventoryv1.PartType) model.PartType {
+	switch t {
+	case inventoryv1.PartType_PART_TYPE_ENGINE:
+		return model.PartTypeEngine
+	case inventoryv1.PartType_PART_TYPE_HULL:
+		return model.PartTypeHull
+	case inventoryv1.PartType_PART_TYPE_SHIELD:
+		return model.PartTypeShield
+	case inventoryv1.PartType_PART_TYPE_WEAPON:
+		return model.PartTypeWeapon
+	default:
+		return model.PartTypeUnspecified
 	}
 }

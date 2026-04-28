@@ -46,7 +46,27 @@ func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 		CreatedAt:  time.Now(),
 	}
 
-	err = s.orderRepository.Create(ctx, order)
+	items := make([]model.OrderItem, len(parts))
+	for i, part := range parts {
+		items[i] = model.OrderItem{
+			UUID:      uuid.New(),
+			OrderUUID: order.UUID,
+			PartUUID:  uuid.MustParse(part.UUID),
+			PartType:  part.PartType,
+			Price:     part.Price,
+			CreatedAt: time.Now(),
+		}
+	}
+
+	err = s.txManager.Do(ctx, func(ctx context.Context) error {
+		if err = s.orderRepository.Create(ctx, order); err != nil {
+			return err
+		}
+		if err = s.orderItemRepository.Create(ctx, items); err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return model.Order{}, err
 	}
