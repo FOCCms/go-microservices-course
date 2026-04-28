@@ -19,10 +19,15 @@ func TestList(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	partID := uuid.New()
+	partID := uuid.New().String()
+	secondPartID := uuid.New().String()
 	parts := []model.Part{
-		{UUID: uuid.New().String(), Name: "Тестовый корпус"},
-		{UUID: partID.String(), Name: "Тестовый двигатель"},
+		{UUID: secondPartID, Name: "Тестовый корпус"},
+		{UUID: partID, Name: "Тестовый двигатель"},
+	}
+	sortedParts := []model.Part{
+		{UUID: partID, Name: "Тестовый двигатель"},
+		{UUID: secondPartID, Name: "Тестовый корпус"},
 	}
 
 	tests := []struct {
@@ -34,7 +39,7 @@ func TestList(t *testing.T) {
 	}{
 		{
 			name:   "успешный список по UUID",
-			filter: model.PartFilter{UUIDs: []string{partID.String()}},
+			filter: model.PartFilter{UUIDs: []string{partID}},
 			setupMock: func(repo *mocks.PartRepository) {
 				repo.EXPECT().List(ctx, mock.MatchedBy(func(f record.PartFilter) bool {
 					return len(f.UUIDs) == 1 && f.UUIDs[0] == partID
@@ -54,11 +59,11 @@ func TestList(t *testing.T) {
 			name:   "успешная сортировка при пустых UUID",
 			filter: model.PartFilter{UUIDs: []string{}, PartType: model.PartTypeUnspecified},
 			setupMock: func(repo *mocks.PartRepository) {
-				repo.EXPECT().List(ctx, mock.Anything).Return(parts, nil)
+				repo.EXPECT().List(ctx, mock.Anything).Return(sortedParts, nil)
 			},
 			want: []model.Part{
-				{UUID: parts[1].UUID, Name: "Тестовый двигатель"},
-				{UUID: parts[0].UUID, Name: "Тестовый корпус"},
+				{UUID: partID, Name: "Тестовый двигатель"},
+				{UUID: secondPartID, Name: "Тестовый корпус"},
 			},
 			wantErr: nil,
 		},

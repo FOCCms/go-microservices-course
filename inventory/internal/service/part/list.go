@@ -1,10 +1,8 @@
 package part
 
 import (
-	"cmp"
 	"context"
 	"fmt"
-	"slices"
 
 	"github.com/google/uuid"
 
@@ -14,32 +12,20 @@ import (
 )
 
 func (s *service) List(ctx context.Context, filter model.PartFilter) ([]model.Part, error) {
-	// Парсим параметры фильтра.
-	ids := make([]uuid.UUID, 0, len(filter.UUIDs))
-
-	for _, idStr := range filter.UUIDs {
-		id, err := uuid.Parse(idStr)
-		if err != nil {
+	// Валидируем параметры фильтра.
+	for _, id := range filter.UUIDs {
+		if err := uuid.Validate(id); err != nil {
 			return []model.Part{}, errs.ErrInvalidUUID
 		}
-
-		ids = append(ids, id)
 	}
 
 	// Получаем список деталей.
 	parts, err := s.partRepository.List(ctx, record.PartFilter{
-		UUIDs:    ids,
+		UUIDs:    filter.UUIDs,
 		PartType: string(filter.PartType),
 	})
 	if err != nil {
 		return []model.Part{}, fmt.Errorf("получить детали: %w", err)
-	}
-
-	// Если фильтр по PartType -- сортируем
-	if len(filter.UUIDs) == 0 {
-		slices.SortFunc(parts, func(a, b model.Part) int {
-			return cmp.Compare(a.Name, b.Name)
-		})
 	}
 
 	return parts, nil

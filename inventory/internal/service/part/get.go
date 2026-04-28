@@ -10,9 +10,8 @@ import (
 	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
 )
 
-func (s *service) Get(ctx context.Context, idStr string) (model.Part, error) {
-	id, err := uuid.Parse(idStr)
-	if err != nil {
+func (s *service) Get(ctx context.Context, id string) (model.Part, error) {
+	if err := uuid.Validate(id); err != nil {
 		return model.Part{}, errs.ErrInvalidUUID
 	}
 

@@ -18,8 +18,8 @@ func TestGet(t *testing.T) {
 
 	var (
 		ctx    = context.Background()
-		partID = uuid.New()
-		part   = model.Part{UUID: partID.String(), Name: "Тестовый образец"}
+		partID = uuid.New().String()
+		part   = model.Part{UUID: partID, Name: "Тестовый образец"}
 	)
 
 	tests := []struct {
@@ -31,7 +31,7 @@ func TestGet(t *testing.T) {
 	}{
 		{
 			name:  "успешное получение",
-			idStr: partID.String(),
+			idStr: partID,
 			setupMock: func(repo *mocks.PartRepository) {
 				repo.EXPECT().Get(ctx, partID).Return(part, nil)
 			},
@@ -48,7 +48,7 @@ func TestGet(t *testing.T) {
 		},
 		{
 			name:  "ошибка: деталь не найдена в БД",
-			idStr: partID.String(),
+			idStr: partID,
 			setupMock: func(repo *mocks.PartRepository) {
 				repo.EXPECT().Get(ctx, partID).Return(model.Part{}, errs.ErrPartNotFound)
 			},
