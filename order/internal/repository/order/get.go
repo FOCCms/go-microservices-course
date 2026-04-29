@@ -32,14 +32,14 @@ func (r *repository) Get(ctx context.Context, orderUUID string) (model.Order, er
 
 	rows, err := r.getter.DefaultTrOrDB(ctx, r.pool).Query(ctx, query, orderUUID)
 	if err != nil {
-		return model.Order{}, err
+		return model.Order{}, fmt.Errorf("считать заказ: %w", err)
 	}
 	defer rows.Close()
 
 	order, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[model.Order])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return model.Order{}, errs.ErrOrderNotFound
+			return model.Order{}, fmt.Errorf("считать заказ: %w", errs.ErrOrderNotFound)
 		}
 		return model.Order{}, fmt.Errorf("считать заказ: %w", err)
 	}

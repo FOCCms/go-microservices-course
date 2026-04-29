@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,22 +13,22 @@ import (
 
 func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (model.Order, error) {
 	if req.HullUUID == uuid.Nil || req.EngineUUID == uuid.Nil {
-		return model.Order{}, errs.ErrPartRequired
+		return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrPartRequired)
 	}
 
 	parts, err := s.inventoryClient.ListParts(ctx, req.PartUUIDs())
 	if err != nil {
-		return model.Order{}, err
+		return model.Order{}, fmt.Errorf("создать заказ: %w", err)
 	}
 
 	if len(parts) != len(req.PartUUIDs()) {
-		return model.Order{}, errs.ErrPartNotFound
+		return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrPartNotFound)
 	}
 
 	var totalPrice int64 = 0
 	for _, part := range parts {
 		if part.StockQuantity <= 0 {
-			return model.Order{}, errs.ErrOutOfStock
+			return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrOutOfStock)
 		}
 
 		totalPrice += part.Price
@@ -68,7 +69,7 @@ func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 		return nil
 	})
 	if err != nil {
-		return model.Order{}, err
+		return model.Order{}, fmt.Errorf("создать заказ: %w", err)
 	}
 
 	return order, nil

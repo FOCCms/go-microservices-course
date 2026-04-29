@@ -17,7 +17,7 @@ func (r *repository) Update(ctx context.Context, order model.Order) error {
 		return fmt.Errorf("обновить заказ: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
-		return errs.ErrOrderNotFound
+		return fmt.Errorf("обновить заказ: %w", errs.ErrOrderNotFound)
 	}
 
 	return nil

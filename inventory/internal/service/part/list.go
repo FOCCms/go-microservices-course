@@ -15,7 +15,7 @@ func (s *service) List(ctx context.Context, filter model.PartFilter) ([]model.Pa
 	// Валидируем параметры фильтра.
 	for _, id := range filter.UUIDs {
 		if err := uuid.Validate(id); err != nil {
-			return []model.Part{}, errs.ErrInvalidUUID
+			return []model.Part{}, fmt.Errorf("получить детали: %w", errs.ErrInvalidUUID)
 		}
 	}
 

@@ -3,6 +3,7 @@ package part
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 
@@ -22,9 +23,9 @@ func (r *repository) Get(ctx context.Context, id string) (model.Part, error) {
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return model.Part{}, errs.ErrPartNotFound
+			return model.Part{}, fmt.Errorf("считать деталь: %w", errs.ErrPartNotFound)
 		}
-		return model.Part{}, err
+		return model.Part{}, fmt.Errorf("считать деталь: %w", err)
 	}
 
 	return repoConverter.PartToModel(p), nil

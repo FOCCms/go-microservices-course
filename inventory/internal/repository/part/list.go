@@ -36,7 +36,7 @@ func (r *repository) List(ctx context.Context, filter record.PartFilter) ([]mode
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("считать детали: %w", err)
 	}
 	defer rows.Close()
 
@@ -46,7 +46,7 @@ func (r *repository) List(ctx context.Context, filter record.PartFilter) ([]mode
 	}
 
 	if len(filter.UUIDs) > 0 && len(pts) != len(filter.UUIDs) {
-		return nil, errs.ErrPartNotFound
+		return nil, fmt.Errorf("считать детали по списку uuid: %w", errs.ErrPartNotFound)
 	}
 
 	parts := make([]model.Part, 0, len(pts))

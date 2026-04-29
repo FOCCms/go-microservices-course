@@ -12,7 +12,7 @@ import (
 
 func (s *service) Get(ctx context.Context, id string) (model.Part, error) {
 	if err := uuid.Validate(id); err != nil {
-		return model.Part{}, errs.ErrInvalidUUID
+		return model.Part{}, fmt.Errorf("получить деталь: %w", errs.ErrInvalidUUID)
 	}
 
 	part, err := s.partRepository.Get(ctx, id)
