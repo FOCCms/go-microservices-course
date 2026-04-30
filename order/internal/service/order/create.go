@@ -59,18 +59,9 @@ func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 		}
 	}
 
-	err = s.txManager.Do(ctx, func(ctx context.Context) error {
-		if err = s.orderRepository.Create(ctx, order); err != nil {
-			return err
-		}
-		if err = s.orderItemRepository.Create(ctx, items); err != nil {
-			return err
-		}
-		return nil
-	})
+	err = s.orderRepository.Create(ctx, order, items)
 	if err != nil {
 		return model.Order{}, fmt.Errorf("создать заказ: %w", err)
 	}
-
 	return order, nil
 }

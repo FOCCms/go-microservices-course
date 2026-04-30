@@ -98,14 +98,12 @@ func TestPay(t *testing.T) {
 			t.Parallel()
 
 			orderRepo := mocks.NewOrderRepository(t)
-			orderItemRepo := mocks.NewOrderItemRepository(t)
 			paymentClient := mocks.NewPaymentClient(t)
 			inventoryClient := mocks.NewInventoryClient(t)
-			txManager := mocks.NewTxManager(t)
 
 			tc.setupMock(orderRepo, paymentClient)
 
-			svc := NewService(orderRepo, orderItemRepo, paymentClient, inventoryClient, txManager)
+			svc := NewService(orderRepo, paymentClient, inventoryClient)
 			txID, err := svc.Pay(ctx, tc.args.id, tc.args.method)
 
 			if tc.expectedErr != nil {

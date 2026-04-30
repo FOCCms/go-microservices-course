@@ -42,16 +42,16 @@ func (_m *OrderRepository) EXPECT() *OrderRepository_Expecter {
 }
 
 // Create provides a mock function for the type OrderRepository
-func (_mock *OrderRepository) Create(ctx context.Context, order model.Order) error {
-	ret := _mock.Called(ctx, order)
+func (_mock *OrderRepository) Create(ctx context.Context, order model.Order, orderItems []model.OrderItem) error {
+	ret := _mock.Called(ctx, order, orderItems)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Create")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, model.Order) error); ok {
-		r0 = returnFunc(ctx, order)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.Order, []model.OrderItem) error); ok {
+		r0 = returnFunc(ctx, order, orderItems)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -66,11 +66,12 @@ type OrderRepository_Create_Call struct {
 // Create is a helper method to define mock.On call
 //   - ctx context.Context
 //   - order model.Order
-func (_e *OrderRepository_Expecter) Create(ctx interface{}, order interface{}) *OrderRepository_Create_Call {
-	return &OrderRepository_Create_Call{Call: _e.mock.On("Create", ctx, order)}
+//   - orderItems []model.OrderItem
+func (_e *OrderRepository_Expecter) Create(ctx interface{}, order interface{}, orderItems interface{}) *OrderRepository_Create_Call {
+	return &OrderRepository_Create_Call{Call: _e.mock.On("Create", ctx, order, orderItems)}
 }
 
-func (_c *OrderRepository_Create_Call) Run(run func(ctx context.Context, order model.Order)) *OrderRepository_Create_Call {
+func (_c *OrderRepository_Create_Call) Run(run func(ctx context.Context, order model.Order, orderItems []model.OrderItem)) *OrderRepository_Create_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -80,9 +81,14 @@ func (_c *OrderRepository_Create_Call) Run(run func(ctx context.Context, order m
 		if args[1] != nil {
 			arg1 = args[1].(model.Order)
 		}
+		var arg2 []model.OrderItem
+		if args[2] != nil {
+			arg2 = args[2].([]model.OrderItem)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -93,7 +99,7 @@ func (_c *OrderRepository_Create_Call) Return(err error) *OrderRepository_Create
 	return _c
 }
 
-func (_c *OrderRepository_Create_Call) RunAndReturn(run func(ctx context.Context, order model.Order) error) *OrderRepository_Create_Call {
+func (_c *OrderRepository_Create_Call) RunAndReturn(run func(ctx context.Context, order model.Order, orderItems []model.OrderItem) error) *OrderRepository_Create_Call {
 	_c.Call.Return(run)
 	return _c
 }

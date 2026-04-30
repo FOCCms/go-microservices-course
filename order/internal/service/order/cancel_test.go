@@ -86,14 +86,12 @@ func TestCancel(t *testing.T) {
 			t.Parallel()
 
 			orderRepo := mocks.NewOrderRepository(t)
-			orderItemRepo := mocks.NewOrderItemRepository(t)
 			inventoryClient := mocks.NewInventoryClient(t)
 			paymentClient := mocks.NewPaymentClient(t)
-			txManager := mocks.NewTxManager(t)
 
 			tc.setupMock(orderRepo)
 
-			svc := NewService(orderRepo, orderItemRepo, paymentClient, inventoryClient, txManager)
+			svc := NewService(orderRepo, paymentClient, inventoryClient)
 			err := svc.Cancel(ctx, uuid.MustParse(tc.args.id))
 
 			if tc.expectedErr != nil {
