@@ -10,9 +10,12 @@ import (
 )
 
 type Config struct {
-	GRPC grpcConfig `yaml:"grpc"`
-	PG   pgConfig   `yaml:"pg"`
+	GRPC   grpcConfig   `yaml:"grpc"`
+	Logger loggerConfig `yaml:"logger"`
+	PG     pgConfig     `yaml:"pg"`
 }
+
+var appConfig *Config
 
 const defaultConfigPath = "inventory/config.local.yaml"
 
@@ -32,20 +35,24 @@ func ResolveConfigPath() string {
 	return defaultConfigPath
 }
 
-func Load(path string) (*Config, error) {
+func MustLoad(path string) {
 	var cfg Config
 
 	if path != "" {
 		if err := cleanenv.ReadConfig(path, &cfg); err != nil {
-			return nil, fmt.Errorf("не удалось загрузить конфиг из %q: %w", path, err)
+			panic(fmt.Sprintf("не удалось загрузить конфиг из %q: %w", path, err))
 		}
-
-		return &cfg, nil
+		appConfig = &cfg
+		return
 	}
 
 	if err := cleanenv.ReadEnv(&cfg); err != nil {
-		return nil, fmt.Errorf("не удалось загрузить конфиг из env: %w", err)
+		panic(fmt.Sprintf("не удалось загрузить конфиг из env: %w", err))
 	}
 
-	return &cfg, nil
+	appConfig = &cfg
+}
+
+func AppConfig() *Config {
+	return appConfig
 }
