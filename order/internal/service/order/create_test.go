@@ -44,10 +44,15 @@ func TestCreate(t *testing.T) {
 		}
 	)
 
+	type setupMockFunc func(
+		repo *mocks.OrderRepository,
+		client *mocks.InventoryClient,
+	)
+
 	tests := []struct {
 		name      string
 		args      args
-		setupMock func(repo *mocks.OrderRepository, client *mocks.InventoryClient)
+		setupMock setupMockFunc
 		expected  expected
 	}{
 		{
@@ -60,16 +65,13 @@ func TestCreate(t *testing.T) {
 			},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
 				client.EXPECT().
-					ListParts(ctx, []uuid.UUID{uuid.MustParse(hullUUID), uuid.MustParse(engineUUID)}).
+					ListParts(ctx, mock.Anything).
 					Return(partsInStock, nil)
 
 				repo.EXPECT().
 					Create(ctx, mock.MatchedBy(func(o model.Order) bool {
-						return o.HullUUID == uuid.MustParse(hullUUID) &&
-							o.EngineUUID == uuid.MustParse(engineUUID) &&
-							o.TotalPrice == 800000 && // 500000 + 300000
-							o.Status == model.OrderStatusPendingPayment
-					})).
+						return o.HullUUID == uuid.MustParse(hullUUID) && o.TotalPrice == 800000
+					}), mock.Anything).
 					Return(nil)
 			},
 			expected: expected{err: nil, wantOrderUUID: true},

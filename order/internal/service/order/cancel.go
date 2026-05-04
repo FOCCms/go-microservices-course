@@ -11,19 +11,19 @@ import (
 )
 
 func (s *service) Cancel(ctx context.Context, id uuid.UUID) error {
-	order, err := s.orderRepository.Get(ctx, id)
+	order, err := s.orderRepository.Get(ctx, id.String())
 	if err != nil {
 		return fmt.Errorf("отменить заказ: %w", err)
 	}
 
 	if order.Status != model.OrderStatusPendingPayment {
 		if order.Status == model.OrderStatusPaid {
-			return errs.ErrOrderAlreadyPaid
+			return fmt.Errorf("отменить заказ: %w", errs.ErrOrderAlreadyPaid)
 		}
 		if order.Status == model.OrderStatusCancelled {
-			return errs.ErrOrderCancelled
+			return fmt.Errorf("отменить заказ: %w", errs.ErrOrderCancelled)
 		}
-		return errs.ErrOrderStatusConflict
+		return fmt.Errorf("отменить заказ: %w", errs.ErrOrderStatusConflict)
 	}
 
 	order.Status = model.OrderStatusCancelled

@@ -43,7 +43,7 @@ func TestPay(t *testing.T) {
 			}{id: orderID, method: paymentMethod},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.PaymentClient) {
 				repo.EXPECT().
-					Get(ctx, orderID).
+					Get(ctx, orderID.String()).
 					Return(model.Order{UUID: orderID, Status: model.OrderStatusPendingPayment}, nil)
 
 				client.EXPECT().
@@ -67,7 +67,7 @@ func TestPay(t *testing.T) {
 			}{id: orderID, method: paymentMethod},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.PaymentClient) {
 				repo.EXPECT().
-					Get(ctx, orderID).
+					Get(ctx, orderID.String()).
 					Return(model.Order{UUID: orderID, Status: model.OrderStatusPendingPayment}, nil)
 
 				client.EXPECT().
@@ -85,7 +85,7 @@ func TestPay(t *testing.T) {
 			}{id: orderID, method: paymentMethod},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.PaymentClient) {
 				repo.EXPECT().
-					Get(ctx, orderID).
+					Get(ctx, orderID.String()).
 					Return(model.Order{UUID: orderID, Status: model.OrderStatusCancelled}, nil)
 			},
 			expected:    uuid.Nil,

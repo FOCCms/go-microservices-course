@@ -10,7 +10,7 @@ import (
 )
 
 func (s *service) Get(ctx context.Context, id uuid.UUID) (model.Order, error) {
-	order, err := s.orderRepository.Get(ctx, id)
+	order, err := s.orderRepository.Get(ctx, id.String())
 	if err != nil {
 		return model.Order{}, fmt.Errorf("получить заказ: %w", err)
 	}

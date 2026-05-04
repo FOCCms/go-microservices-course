@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 
 	partV1API "github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1"
@@ -10,8 +11,8 @@ import (
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 )
 
-func RegisterServices(grpcServer *grpc.Server) {
-	repo := partRepository.NewRepository()
+func RegisterServices(grpcServer *grpc.Server, pool *pgxpool.Pool) {
+	repo := partRepository.NewRepository(pool)
 	service := partService.NewService(repo)
 	api := partV1API.NewAPI(service)
 	inventoryv1.RegisterInventoryServiceServer(grpcServer, api)

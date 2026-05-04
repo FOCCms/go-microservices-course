@@ -11,24 +11,24 @@ import (
 )
 
 func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
-	order, err := s.orderRepository.Get(ctx, id)
+	order, err := s.orderRepository.Get(ctx, id.String())
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("оплатить заказ: %w", err)
 	}
 
 	if order.Status != model.OrderStatusPendingPayment {
 		if order.Status == model.OrderStatusPaid {
-			return uuid.Nil, errs.ErrOrderAlreadyPaid
+			return uuid.Nil, fmt.Errorf("оплатить заказ: %w", errs.ErrOrderAlreadyPaid)
 		}
 		if order.Status == model.OrderStatusCancelled {
-			return uuid.Nil, errs.ErrOrderCancelled
+			return uuid.Nil, fmt.Errorf("оплатить заказ: %w", errs.ErrOrderCancelled)
 		}
-		return uuid.Nil, errs.ErrOrderStatusConflict
+		return uuid.Nil, fmt.Errorf("оплатить заказ: %w", errs.ErrOrderStatusConflict)
 	}
 
 	transactionUUID, err := s.paymentClient.PayOrder(ctx, id, method)
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, fmt.Errorf("оплатить заказ: %w", err)
 	}
 
 	order.PaymentMethod = &method
@@ -37,7 +37,7 @@ func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMet
 
 	err = s.orderRepository.Update(ctx, order)
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, fmt.Errorf("оплатить заказ: %w", err)
 	}
 
 	return transactionUUID, nil

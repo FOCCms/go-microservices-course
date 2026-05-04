@@ -2,24 +2,22 @@ package record
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // Part представляет деталь космического корабля.
 type Part struct {
-	UUID          string
-	Name          string
-	Description   string
-	Price         int64
-	PartType      string
-	StockQuantity int64
-	CreatedAt     time.Time
+	UUID          string    `db:"uuid"`
+	Name          string    `db:"name"`
+	Description   string    `db:"description"`
+	Price         int64     `db:"price"`
+	PartType      string    `db:"part_type"`
+	StockQuantity int64     `db:"stock_quantity"`
+	CreatedAt     time.Time `db:"created_at"`
 }
 
 type PartFilter struct {
 	// UUIDs — если не пустой, возвращаются только эти детали (приоритет)
-	UUIDs []uuid.UUID
+	UUIDs []string
 	// PartType — фильтр по типу (игнорируется если UUIDs заполнен)
 	PartType string
 }

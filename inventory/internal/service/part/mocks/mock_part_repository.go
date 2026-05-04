@@ -12,7 +12,6 @@ import (
 
 	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
-	"github.com/google/uuid"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -44,7 +43,7 @@ func (_m *PartRepository) EXPECT() *PartRepository_Expecter {
 }
 
 // Get provides a mock function for the type PartRepository
-func (_mock *PartRepository) Get(ctx context.Context, id uuid.UUID) (model.Part, error) {
+func (_mock *PartRepository) Get(ctx context.Context, id string) (model.Part, error) {
 	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
@@ -53,15 +52,15 @@ func (_mock *PartRepository) Get(ctx context.Context, id uuid.UUID) (model.Part,
 
 	var r0 model.Part
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (model.Part, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (model.Part, error)); ok {
 		return returnFunc(ctx, id)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) model.Part); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) model.Part); ok {
 		r0 = returnFunc(ctx, id)
 	} else {
 		r0 = ret.Get(0).(model.Part)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, id)
 	} else {
 		r1 = ret.Error(1)
@@ -76,20 +75,20 @@ type PartRepository_Get_Call struct {
 
 // Get is a helper method to define mock.On call
 //   - ctx context.Context
-//   - id uuid.UUID
+//   - id string
 func (_e *PartRepository_Expecter) Get(ctx interface{}, id interface{}) *PartRepository_Get_Call {
 	return &PartRepository_Get_Call{Call: _e.mock.On("Get", ctx, id)}
 }
 
-func (_c *PartRepository_Get_Call) Run(run func(ctx context.Context, id uuid.UUID)) *PartRepository_Get_Call {
+func (_c *PartRepository_Get_Call) Run(run func(ctx context.Context, id string)) *PartRepository_Get_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 uuid.UUID
+		var arg1 string
 		if args[1] != nil {
-			arg1 = args[1].(uuid.UUID)
+			arg1 = args[1].(string)
 		}
 		run(
 			arg0,
@@ -104,7 +103,7 @@ func (_c *PartRepository_Get_Call) Return(part model.Part, err error) *PartRepos
 	return _c
 }
 
-func (_c *PartRepository_Get_Call) RunAndReturn(run func(ctx context.Context, id uuid.UUID) (model.Part, error)) *PartRepository_Get_Call {
+func (_c *PartRepository_Get_Call) RunAndReturn(run func(ctx context.Context, id string) (model.Part, error)) *PartRepository_Get_Call {
 	_c.Call.Return(run)
 	return _c
 }

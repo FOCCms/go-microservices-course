@@ -2,16 +2,23 @@ package order
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
-	"github.com/FOCCms/go-microservices-course/order/internal/repository/converter"
 )
 
 func (r *repository) Update(ctx context.Context, order model.Order) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	const query = `UPDATE orders SET status = $1, transaction_uuid = $2, payment_method = $3, updated_at = $4 WHERE uuid = $5`
 
-	r.orders[order.UUID] = converter.ModelOrderToRecordOrder(order)
+	tag, err := r.getter.DefaultTrOrDB(ctx, r.pool).Exec(ctx, query, string(order.Status), order.TransactionUUID, order.PaymentMethod, time.Now(), order.UUID)
+	if err != nil {
+		return fmt.Errorf("обновить заказ: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("обновить заказ: %w", errs.ErrOrderNotFound)
+	}
 
 	return nil
 }

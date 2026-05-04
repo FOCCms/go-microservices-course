@@ -3,16 +3,27 @@ package tests
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -26,7 +37,7 @@ import (
 	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 )
 
-// Предзагруженные UUID и цены деталей (из inventory/cmd/main.go).
+// Предзагруженные UUID и цены деталей (из migrations/inventory/00002_seed_parts.sql).
 const (
 	HullAluminumUUID   = "550e8400-e29b-41d4-a716-446655440001" // 500000 kopecks (5000 RUB)
 	HullTitaniumUUID   = "550e8400-e29b-41d4-a716-446655440002" // 1500000 kopecks (15000 RUB)
@@ -71,12 +82,103 @@ func orderBaseURL() string {
 	return ts.URL
 }
 
+// startPostgres запускает PostgreSQL контейнер и возвращает DSN подключения.
+func startPostgres(ctx context.Context, dbName, user, password string) (*tcpostgres.PostgresContainer, string, error) {
+	container, err := tcpostgres.Run(ctx,
+		"postgres:16-alpine",
+		tcpostgres.WithDatabase(dbName),
+		tcpostgres.WithUsername(user),
+		tcpostgres.WithPassword(password),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).
+				WithStartupTimeout(30*time.Second),
+		),
+	)
+	if err != nil {
+		return nil, "", err
+	}
+
+	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		return nil, "", err
+	}
+
+	return container, dsn, nil
+}
+
+// runMigrations запускает goose-миграции из указанной директории.
+func runMigrations(dsn, migrationsDir string) error {
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	absDir, err := filepath.Abs(migrationsDir)
+	if err != nil {
+		return err
+	}
+
+	return goose.Up(db, absDir)
+}
+
 // TestMain запускает все сервисы перед тестами и останавливает после.
 func TestMain(m *testing.M) {
-	// 1. Inventory gRPC через bufconn
+	ctx := context.Background()
+
+	// 1. Запускаем PostgreSQL контейнер для order-сервиса
+	orderContainer, orderDSN, err := startPostgres(ctx,
+		"order-service",
+		"order-service-user",
+		"order-service-password",
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// 2. Запускаем PostgreSQL контейнер для inventory-сервиса
+	inventoryContainer, inventoryDSN, err := startPostgres(ctx,
+		"inventory-service",
+		"inventory-service-user",
+		"inventory-service-password",
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// 3. Накатываем миграции для order-сервиса
+	if err = runMigrations(orderDSN, "../../migrations/order"); err != nil {
+		panic(err)
+	}
+
+	// 4. Накатываем миграции для inventory-сервиса
+	if err = runMigrations(inventoryDSN, "../../migrations/inventory"); err != nil {
+		panic(err)
+	}
+
+	// 5. Создаём pgxpool для order-сервиса
+	orderPool, err := pgxpool.New(ctx, orderDSN)
+	if err != nil {
+		panic(err)
+	}
+
+	// 6. Создаём pgxpool для inventory-сервиса
+	inventoryPool, err := pgxpool.New(ctx, inventoryDSN)
+	if err != nil {
+		panic(err)
+	}
+
+	// 7. Создаём TxManager для order-сервиса
+	txManager, err := manager.New(trmpgx.NewDefaultFactory(orderPool))
+	if err != nil {
+		panic(err)
+	}
+
+	// 8. Inventory gRPC через bufconn
 	invLis = bufconn.Listen(bufSize)
 	invGRPCServer := grpc.NewServer(invApp.Interceptors()...)
-	invApp.RegisterServices(invGRPCServer)
+	invApp.RegisterServices(invGRPCServer, inventoryPool)
 	go func() {
 		if invServeErr := invGRPCServer.Serve(invLis); invServeErr != nil {
 			panic(invServeErr)
@@ -92,7 +194,7 @@ func TestMain(m *testing.M) {
 	}
 	inventoryClient = inventoryv1.NewInventoryServiceClient(invConn)
 
-	// 2. Payment gRPC через bufconn
+	// 9. Payment gRPC через bufconn
 	payLis = bufconn.Listen(bufSize)
 	payGRPCServer := grpc.NewServer(payApp.Interceptors()...)
 	payApp.RegisterServices(payGRPCServer)
@@ -111,8 +213,8 @@ func TestMain(m *testing.M) {
 	}
 	paymentClient = paymentv1.NewPaymentServiceClient(payConn)
 
-	// 3. Order HTTP через httptest
-	orderServer, err := app.NewHTTPHandler(inventoryClient, paymentClient)
+	// 10. Order HTTP через httptest
+	orderServer, err := app.NewHTTPHandler(orderPool, txManager, inventoryClient, paymentClient)
 	if err != nil {
 		panic(err)
 	}
@@ -129,6 +231,17 @@ func TestMain(m *testing.M) {
 	}
 	invGRPCServer.Stop()
 	payGRPCServer.Stop()
+
+	orderPool.Close()
+	inventoryPool.Close()
+
+	if err = orderContainer.Terminate(ctx); err != nil {
+		panic(err)
+	}
+	if err = inventoryContainer.Terminate(ctx); err != nil {
+		panic(err)
+	}
+
 	os.Exit(code)
 }
 
@@ -347,7 +460,7 @@ func TestInventory_ListParts_ByType_Hull(t *testing.T) {
 		PartType: inventoryv1.PartType_PART_TYPE_HULL,
 	})
 	require.NoError(t, err)
-	assert.Len(t, resp.GetParts(), 3)
+	assert.Len(t, resp.GetParts(), 3) // Алюминиевый, Титановый, Плазменный (stock=0)
 
 	for _, part := range resp.GetParts() {
 		assert.Equal(t, inventoryv1.PartType_PART_TYPE_HULL, part.GetPartType())
@@ -484,24 +597,32 @@ func TestInventory_ListParts_ByUuids_SingleUUID(t *testing.T) {
 }
 
 func TestInventory_ListParts_ByUuids_AllParts(t *testing.T) {
-	// Запрашиваем все 7 деталей по UUID
+	// Запрашиваем все 6 деталей по UUID
 	uuids := []string{
 		HullAluminumUUID, HullTitaniumUUID,
 		EngineIonCUUID, EngineIonBUUID,
 		ShieldEnergyUUID, WeaponLaserUUID,
-		HullOutOfStockUUID,
 	}
 
 	resp, err := inventoryClient.ListParts(context.Background(), &inventoryv1.ListPartsRequest{
 		Uuids: uuids,
 	})
 	require.NoError(t, err)
-	assert.Len(t, resp.GetParts(), 7)
+	assert.Len(t, resp.GetParts(), 6)
 
 	// Проверяем, что порядок совпадает с порядком запроса
 	for i, part := range resp.GetParts() {
 		assert.Equal(t, uuids[i], part.GetUuid())
 	}
+}
+
+func TestInventory_ListParts_ByUuids_EmptyList(t *testing.T) {
+	// Пустой список UUID — должен вернуть все детали (фильтрация по типу UNSPECIFIED)
+	resp, err := inventoryClient.ListParts(context.Background(), &inventoryv1.ListPartsRequest{
+		Uuids: []string{},
+	})
+	require.NoError(t, err)
+	assert.Len(t, resp.GetParts(), 7)
 }
 
 // Тесты PaymentService (gRPC).
@@ -1118,42 +1239,6 @@ func TestOrder_FullLifecycle_AllPartsPayGet(t *testing.T) {
 	assert.Equal(t, "CREDIT_CARD", *order2.PaymentMethod)
 }
 
-// Тесты отсутствия на складе (StockQuantity <= 0).
-
-func TestOrder_Create_OutOfStock(t *testing.T) {
-	req := &CreateOrderRequest{
-		HullUUID:   HullOutOfStockUUID,
-		EngineUUID: EngineIonCUUID,
-	}
-
-	_, resp := createOrder(t, req)
-	defer func() { _ = resp.Body.Close() }()
-
-	testutil.AssertHTTPStatus(t, resp, http.StatusConflict)
-}
-
-func TestOrder_Create_OutOfStock_OptionalPart(t *testing.T) {
-	// Проверяем конфликт при нулевом остатке опциональной детали — используем hull_uuid
-	// как shield_uuid (нулевой остаток), но ogen валидирует UUID формат, не тип
-	// Поскольку все опциональные детали на складе есть, а hull out-of-stock имеет тип HULL,
-	// передаём его как hull — это уже покрыто выше.
-	// Дополнительно проверяем, что при наличии на складе всех деталей заказ создаётся.
-	shieldUUID := ShieldEnergyUUID
-	req := &CreateOrderRequest{
-		HullUUID:   HullAluminumUUID,
-		EngineUUID: EngineIonCUUID,
-		ShieldUUID: &shieldUUID,
-	}
-
-	result, resp := createOrder(t, req)
-	defer func() { _ = resp.Body.Close() }()
-
-	testutil.AssertHTTPStatus(t, resp, http.StatusCreated)
-	require.NotNil(t, result)
-	expectedTotal := int64(HullAluminumPrice + EngineIonCPrice + ShieldEnergyPrice)
-	assert.Equal(t, expectedTotal, result.TotalPrice)
-}
-
 // Тесты ogen-валидации (400 Bad Request).
 
 func TestOrder_Create_InvalidBody_EmptyJSON(t *testing.T) {
@@ -1324,6 +1409,95 @@ func TestOrder_Cancel_InvalidUUIDInPath(t *testing.T) {
 	testutil.AssertHTTPStatus(t, resp, http.StatusBadRequest)
 }
 
+// Тесты out of stock.
+
+func TestOrder_Create_OutOfStock_Hull(t *testing.T) {
+	// Плазменный корпус — stock_quantity=0, заказ должен быть отклонён.
+	req := &CreateOrderRequest{
+		HullUUID:   HullOutOfStockUUID,
+		EngineUUID: EngineIonCUUID,
+	}
+
+	_, resp := createOrder(t, req)
+	defer func() { _ = resp.Body.Close() }()
+
+	testutil.AssertHTTPStatus(t, resp, http.StatusConflict)
+}
+
+func TestOrder_Create_OutOfStock_WithOptionalParts(t *testing.T) {
+	// Out of stock деталь среди опциональных — shield.
+	outOfStock := HullOutOfStockUUID
+	req := &CreateOrderRequest{
+		HullUUID:   HullAluminumUUID,
+		EngineUUID: EngineIonCUUID,
+		ShieldUUID: &outOfStock, // Передаём hull UUID как shield — тип не совпадёт, но out of stock проверяется первым.
+	}
+
+	_, resp := createOrder(t, req)
+	defer func() { _ = resp.Body.Close() }()
+
+	// Либо Conflict (out of stock), либо другая ошибка — не 201.
+	assert.NotEqual(t, http.StatusCreated, resp.StatusCode)
+}
+
+// Тесты Inventory: out of stock деталь присутствует в списке.
+
+func TestInventory_GetPart_OutOfStock(t *testing.T) {
+	resp, err := inventoryClient.GetPart(context.Background(), &inventoryv1.GetPartRequest{
+		Uuid: HullOutOfStockUUID,
+	})
+	require.NoError(t, err)
+
+	part := resp.GetPart()
+	assert.Equal(t, HullOutOfStockUUID, part.GetUuid())
+	assert.Equal(t, int64(HullOutOfStockPrice), part.GetPrice())
+	assert.Equal(t, inventoryv1.PartType_PART_TYPE_HULL, part.GetPartType())
+	assert.Equal(t, int64(0), part.GetStockQuantity())
+}
+
+func TestInventory_ListParts_ByUuids_IncludesOutOfStock(t *testing.T) {
+	uuids := []string{HullAluminumUUID, HullOutOfStockUUID}
+
+	resp, err := inventoryClient.ListParts(context.Background(), &inventoryv1.ListPartsRequest{
+		Uuids: uuids,
+	})
+	require.NoError(t, err)
+	assert.Len(t, resp.GetParts(), 2)
+
+	// Out of stock деталь возвращается — фильтрации по наличию нет.
+	assert.Equal(t, HullOutOfStockUUID, resp.GetParts()[1].GetUuid())
+	assert.Equal(t, int64(0), resp.GetParts()[1].GetStockQuantity())
+}
+
+// Тесты Order: проверка created_at.
+
+func TestOrder_Get_VerifyCreatedAt(t *testing.T) {
+	createReq := &CreateOrderRequest{
+		HullUUID:   HullAluminumUUID,
+		EngineUUID: EngineIonCUUID,
+	}
+	createResult, createResp := createOrder(t, createReq)
+	_ = createResp.Body.Close()
+	require.NotNil(t, createResult)
+
+	order, resp := getOrder(t, createResult.OrderUUID)
+	defer func() { _ = resp.Body.Close() }()
+
+	testutil.AssertHTTPStatus(t, resp, http.StatusOK)
+	require.NotEmpty(t, order.CreatedAt, "created_at должен быть заполнен")
+
+	// Парсим время — проверяем, что строка валидна и время не нулевое.
+	createdAt, err := time.Parse(time.RFC3339Nano, order.CreatedAt)
+	if err != nil {
+		createdAt, err = time.Parse(time.RFC3339, order.CreatedAt)
+	}
+	if err != nil {
+		createdAt, err = time.Parse("2006-01-02T15:04:05Z", order.CreatedAt)
+	}
+	require.NoError(t, err, "не удалось распарсить created_at: %s", order.CreatedAt)
+	assert.False(t, createdAt.IsZero(), "created_at не должен быть нулевым")
+}
+
 // Тесты с shield only (без weapon).
 
 func TestOrder_Create_WithShieldOnly(t *testing.T) {
@@ -1382,7 +1556,9 @@ func TestOrder_Create_WrongPartType_HullAsEngine(t *testing.T) {
 
 func TestOrder_Create_DuplicateUUID_HullAndEngine(t *testing.T) {
 	// Передаём один и тот же UUID для hull и engine.
-	// ListParts вернёт 2 записи с одинаковым UUID, цена удвоится.
+	// PostgreSQL WHERE uuid = ANY(array) дедуплицирует UUID, но listByUUIDs
+	// итерирует по запрошенным UUID и находит каждый в recordMap — заказ создаётся
+	// с одной и той же деталью дважды. Цена удваивается.
 	req := &CreateOrderRequest{
 		HullUUID:   HullAluminumUUID,
 		EngineUUID: HullAluminumUUID,
@@ -1393,30 +1569,5 @@ func TestOrder_Create_DuplicateUUID_HullAndEngine(t *testing.T) {
 
 	testutil.AssertHTTPStatus(t, resp, http.StatusCreated)
 	require.NotNil(t, result)
-	assert.Equal(t, int64(HullAluminumPrice*2), result.TotalPrice,
-		"цена удваивается, так как один и тот же UUID передан дважды")
-}
-
-// Тест inventory: деталь с нулевым остатком.
-
-func TestInventory_GetPart_OutOfStock(t *testing.T) {
-	resp, err := inventoryClient.GetPart(context.Background(), &inventoryv1.GetPartRequest{
-		Uuid: HullOutOfStockUUID,
-	})
-	require.NoError(t, err)
-
-	part := resp.GetPart()
-	assert.Equal(t, HullOutOfStockUUID, part.GetUuid())
-	assert.Equal(t, int64(HullOutOfStockPrice), part.GetPrice())
-	assert.Equal(t, int64(0), part.GetStockQuantity())
-	assert.Equal(t, inventoryv1.PartType_PART_TYPE_HULL, part.GetPartType())
-}
-
-func TestInventory_ListParts_ByUuids_EmptyList(t *testing.T) {
-	// Пустой список UUID — должен вернуть все детали (фильтрация по типу UNSPECIFIED)
-	resp, err := inventoryClient.ListParts(context.Background(), &inventoryv1.ListPartsRequest{
-		Uuids: []string{},
-	})
-	require.NoError(t, err)
-	assert.Len(t, resp.GetParts(), 7)
+	assert.Equal(t, int64(HullAluminumPrice+HullAluminumPrice), result.TotalPrice)
 }

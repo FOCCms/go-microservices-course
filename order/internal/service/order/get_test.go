@@ -18,7 +18,7 @@ func TestGet(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
-		id uuid.UUID
+		id string
 	}
 
 	type expected struct {
@@ -28,9 +28,9 @@ func TestGet(t *testing.T) {
 
 	var (
 		ctx       = context.Background()
-		orderID   = uuid.MustParse(gofakeit.UUID())
+		orderID   = gofakeit.UUID()
 		mockOrder = model.Order{
-			UUID: orderID,
+			UUID: uuid.MustParse(orderID),
 		}
 	)
 
@@ -73,7 +73,7 @@ func TestGet(t *testing.T) {
 			tc.setupMock(orderRepo)
 
 			svc := NewService(orderRepo, paymentClient, inventoryClient)
-			order, err := svc.Get(ctx, tc.args.id)
+			order, err := svc.Get(ctx, uuid.MustParse(tc.args.id))
 
 			if tc.expected.err != nil {
 				require.Error(t, err)
