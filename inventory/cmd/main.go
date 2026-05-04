@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"net"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -15,11 +14,11 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
+	"github.com/FOCCms/go-microservices-course/inventory/internal/config"
 	"github.com/FOCCms/go-microservices-course/inventory/pkg/app"
 )
 
 const (
-	grpcAddress               = ":50051"
 	grpcMaxConnectionIdle     = 15 * time.Minute
 	grpcMaxConnectionAge      = 30 * time.Minute
 	grpcMaxConnectionAgeGrace = 10 * time.Second
@@ -29,15 +28,21 @@ const (
 )
 
 func main() {
+	configPath := config.ResolveConfigPath()
+
+	// .env опционален — ошибка загрузки допустима.
 	err := godotenv.Load("inventory.env")
 	if err != nil {
-		slog.Error("не удалось загрузить .env файл", "error", err)
+		slog.Warn("не удалось загрузить .env конфигурацию", "error", err)
+	}
+
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		slog.Error("не удалось загрузить конфигурацию", "error", err)
 		return
 	}
 
-	dsn := os.Getenv("DB_URI")
-
-	lis, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", grpcAddress)
+	lis, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", cfg.GRPC.Address())
 	if err != nil {
 		slog.Error("не удалось создать listener", "error", err)
 		return
@@ -64,7 +69,7 @@ func main() {
 	defer cancel()
 
 	// Подключаем БД
-	pool, err := pgxpool.New(ctx, dsn)
+	pool, err := pgxpool.New(ctx, cfg.PG.DSN())
 	if err != nil {
 		slog.Error("создание пула соединений", "error", err)
 		return
@@ -86,10 +91,10 @@ func main() {
 	// Включаем reflection для postman/grpcurl
 	reflection.Register(grpcServer)
 
-	slog.Info("запуск InventoryService", "адрес", grpcAddress)
+	slog.Info("запуск InventoryService", "адрес", cfg.GRPC.Address())
 
 	go func() {
-		slog.Info("🚀 gRPC сервер запущен", "address", grpcAddress)
+		slog.Info("🚀 gRPC сервер запущен", "address", cfg.GRPC.Address())
 		if serveErr := grpcServer.Serve(lis); serveErr != nil {
 			slog.Error("ошибка запуска сервера", "error", serveErr)
 			cancel() // будим main, чтобы не висеть бесконечно
