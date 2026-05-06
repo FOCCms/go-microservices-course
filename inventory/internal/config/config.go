@@ -40,14 +40,14 @@ func MustLoad(path string) {
 
 	if path != "" {
 		if err := cleanenv.ReadConfig(path, &cfg); err != nil {
-			panic(fmt.Sprintf("не удалось загрузить конфиг из %q: %w", path, err))
+			panic(fmt.Sprintf("не удалось загрузить конфиг из %q: %q", path, err))
 		}
 		appConfig = &cfg
 		return
 	}
 
 	if err := cleanenv.ReadEnv(&cfg); err != nil {
-		panic(fmt.Sprintf("не удалось загрузить конфиг из env: %w", err))
+		panic(fmt.Sprintf("не удалось загрузить конфиг из env: %q", err))
 	}
 
 	appConfig = &cfg

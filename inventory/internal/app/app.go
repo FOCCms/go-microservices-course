@@ -9,15 +9,16 @@ import (
 	"syscall"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/reflection"
+
 	"github.com/FOCCms/go-microservices-course/inventory/internal/config"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/interceptor"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/grpc/health"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/logger"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/reflection"
 )
 
 const (
@@ -55,7 +56,6 @@ func (a *App) Run() error {
 }
 
 func (a *App) initDeps(ctx context.Context) error {
-
 	a.initDI(ctx)
 	a.initLogger(ctx)
 
@@ -68,7 +68,7 @@ func (a *App) initDeps(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) initDI(ctx context.Context) {
+func (a *App) initDI(_ context.Context) {
 	a.diContainer = &diContainer{}
 }
 
@@ -110,7 +110,6 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	})
 
 	reflection.Register(a.grpcServer)
-
 	health.RegisterService(a.grpcServer)
 
 	api, err := a.diContainer.InventoryV1API(ctx)

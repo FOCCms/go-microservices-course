@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	partV1API "github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/config"
 	partRepository "github.com/FOCCms/go-microservices-course/inventory/internal/repository/part"
 	partService "github.com/FOCCms/go-microservices-course/inventory/internal/service/part"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type diContainer struct {
@@ -58,11 +59,11 @@ func (d *diContainer) InventoryRepo(ctx context.Context) (partService.PartReposi
 
 func (d *diContainer) InventoryService(ctx context.Context) (partV1API.PartService, error) {
 	if d.inventoryService == nil {
-		srv, err := d.InventoryRepo(ctx)
+		repo, err := d.InventoryRepo(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать сервис: %w", err)
 		}
-		d.inventoryService = partService.NewService(srv)
+		d.inventoryService = partService.NewService(repo)
 	}
 
 	return d.inventoryService, nil
@@ -70,11 +71,11 @@ func (d *diContainer) InventoryService(ctx context.Context) (partV1API.PartServi
 
 func (d *diContainer) InventoryV1API(ctx context.Context) (inventoryv1.InventoryServiceServer, error) {
 	if d.inventoryV1Handler == nil {
-		api, err := d.InventoryService(ctx)
+		service, err := d.InventoryService(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать хендлер: %w", err)
 		}
-		d.inventoryV1Handler = partV1API.NewAPI(api)
+		d.inventoryV1Handler = partV1API.NewAPI(service)
 	}
 
 	return d.inventoryV1Handler, nil
