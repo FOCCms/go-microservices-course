@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
 )
 

@@ -3,16 +3,17 @@ package part
 import (
 	"context"
 	"testing"
+	"time"
 
+	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
+	model "github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/service/part/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/service/part/mocks"
 )
 
 func TestList(t *testing.T) {
@@ -21,13 +22,15 @@ func TestList(t *testing.T) {
 	ctx := context.Background()
 	partID := uuid.New().String()
 	secondPartID := uuid.New().String()
+	anyTime := time.Now()
+
 	parts := []model.Part{
-		{UUID: secondPartID, Name: "Тестовый корпус"},
-		{UUID: partID, Name: "Тестовый двигатель"},
+		model.RestorePart(secondPartID, "Тестовый корпус", "", "", 0, 0, 0, valueobject.PartProperties{}, anyTime),
+		model.RestorePart(partID, "Тестовый двигатель", "", "", 0, 0, 0, valueobject.PartProperties{}, anyTime),
 	}
 	sortedParts := []model.Part{
-		{UUID: partID, Name: "Тестовый двигатель"},
-		{UUID: secondPartID, Name: "Тестовый корпус"},
+		model.RestorePart(partID, "Тестовый двигатель", "", "", 0, 0, 0, valueobject.PartProperties{}, anyTime),
+		model.RestorePart(secondPartID, "Тестовый корпус", "", "", 0, 0, 0, valueobject.PartProperties{}, anyTime),
 	}
 
 	tests := []struct {
@@ -57,13 +60,13 @@ func TestList(t *testing.T) {
 		},
 		{
 			name:   "успешная сортировка при пустых UUID",
-			filter: model.PartFilter{UUIDs: []string{}, PartType: model.PartTypeUnspecified},
+			filter: model.PartFilter{UUIDs: []string{}, PartType: valueobject.PartTypeUnspecified},
 			setupMock: func(repo *mocks.PartRepository) {
 				repo.EXPECT().List(ctx, mock.Anything).Return(sortedParts, nil)
 			},
 			want: []model.Part{
-				{UUID: partID, Name: "Тестовый двигатель"},
-				{UUID: secondPartID, Name: "Тестовый корпус"},
+				model.RestorePart(partID, "Тестовый двигатель", "", "", 0, 0, 0, valueobject.PartProperties{}, anyTime),
+				model.RestorePart(secondPartID, "Тестовый корпус", "", "", 0, 0, 0, valueobject.PartProperties{}, anyTime),
 			},
 			wantErr: nil,
 		},

@@ -3,13 +3,15 @@ package part
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/service/part/mocks"
 )
 
@@ -19,7 +21,7 @@ func TestGet(t *testing.T) {
 	var (
 		ctx    = context.Background()
 		partID = uuid.New().String()
-		part   = model.Part{UUID: partID, Name: "Тестовый образец"}
+		part   = model.RestorePart(partID, "Тестовый образец", "", "", 0, 0, 0, valueobject.PartProperties{}, time.Now())
 	)
 
 	tests := []struct {

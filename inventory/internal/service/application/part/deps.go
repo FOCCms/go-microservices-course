@@ -3,7 +3,7 @@ package part
 import (
 	"context"
 
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
 )
 
