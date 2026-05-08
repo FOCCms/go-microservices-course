@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/FOCCms/go-microservices-course/order/internal/converter"
 	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 )
@@ -16,22 +17,24 @@ func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 		return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrPartRequired)
 	}
 
-	parts, err := s.inventoryClient.ListParts(ctx, req.PartUUIDs())
+	parts, err := listPats(ctx, req, s)
+	if err != nil {
+		return model.Order{}, err
+	}
+
+	err = s.inventoryClient.ValidateCompatibility(ctx, converter.ToShipSlots(req))
 	if err != nil {
 		return model.Order{}, fmt.Errorf("создать заказ: %w", err)
 	}
 
-	if len(parts) != len(req.PartUUIDs()) {
-		return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrPartNotFound)
+	totalPrice, err := countTotalPrice(parts)
+	if err != nil {
+		return model.Order{}, err
 	}
 
-	var totalPrice int64 = 0
-	for _, part := range parts {
-		if part.StockQuantity <= 0 {
-			return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrOutOfStock)
-		}
-
-		totalPrice += part.Price
+	err = s.inventoryClient.ReserveParts(ctx, req.PartUUIDs())
+	if err != nil {
+		return model.Order{}, fmt.Errorf("создать заказ: %w", err)
 	}
 
 	orderUUID := uuid.New()
@@ -64,4 +67,28 @@ func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 		return model.Order{}, fmt.Errorf("создать заказ: %w", err)
 	}
 	return order, nil
+}
+
+func listPats(ctx context.Context, req model.CreateOrderRequest, s *service) ([]model.Part, error) {
+	parts, err := s.inventoryClient.ListParts(ctx, req.PartUUIDs())
+	if err != nil {
+		return nil, fmt.Errorf("создать заказ: %w", err)
+	}
+
+	if len(parts) != len(req.PartUUIDs()) {
+		return nil, fmt.Errorf("создать заказ: %w", errs.ErrPartNotFound)
+	}
+	return parts, nil
+}
+
+func countTotalPrice(parts []model.Part) (int64, error) {
+	var totalPrice int64
+	for _, part := range parts {
+		if part.StockQuantity <= 0 {
+			return 0, fmt.Errorf("создать заказ: %w", errs.ErrOutOfStock)
+		}
+
+		totalPrice += part.Price
+	}
+	return totalPrice, nil
 }

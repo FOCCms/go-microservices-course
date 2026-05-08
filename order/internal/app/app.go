@@ -86,23 +86,18 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 func (a *App) Run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
-	a.startGracefulShutdown(ctx, cancel)
-	slog.Info("🚀 HTTP-сервер запущен", "address", config.AppConfig().HTTP.Addr())
-	if err := a.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("ошибка запуска сервера: %w", err)
-	}
 
-	return nil
-}
-
-func (a *App) startGracefulShutdown(ctx context.Context, cancel context.CancelFunc) {
 	go func() {
-		// Ждём сигнал от ОС или падение сервера.
-		<-ctx.Done()
-		cancel()
-
-		closeAll()
+		slog.Info("🚀 HTTP-сервер запущен", "address", config.AppConfig().HTTP.Addr())
+		if err := a.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("ошибка запуска сервера", "error", err)
+			cancel()
+		}
 	}()
+
+	<-ctx.Done()
+	closeAll()
+	return nil
 }
 
 func closeAll() {

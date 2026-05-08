@@ -11,4 +11,6 @@ var (
 	ErrOutOfStock          = errors.New("деталь отсутствует на складе")
 	ErrInvalidUUID         = errors.New("неверный формат UUID")
 	ErrPartRequired        = errors.New("не указаны обязательные детали")
+	ErrIncompatibleParts   = errors.New("детали несовместимы")
+	ErrPartTypeMismatch    = errors.New("тип детали не соответствует слоту корабля")
 )

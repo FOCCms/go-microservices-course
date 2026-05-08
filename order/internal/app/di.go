@@ -147,8 +147,12 @@ func (d *diContainer) OrderService(ctx context.Context) (orderV1API.OrderService
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать сервис: %w", err)
 		}
+		txManager, err := d.TxManager(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать сервис: %w", err)
+		}
 
-		orderSrv.NewService(repo, paymentClient, inventoryClient)
+		orderSrv.NewService(repo, paymentClient, inventoryClient, txManager)
 	}
 	return d.orderService, nil
 }

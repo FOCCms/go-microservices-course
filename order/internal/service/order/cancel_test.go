@@ -30,16 +30,20 @@ func TestCancel(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        args
-		setupMock   func(repo *mocks.OrderRepository)
+		setupMock   func(repo *mocks.OrderRepository, client *mocks.InventoryClient)
 		expectedErr error
 	}{
 		{
 			name: "успешная отмена заказа",
 			args: args{id: orderID},
-			setupMock: func(repo *mocks.OrderRepository) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
 				repo.EXPECT().
 					Get(ctx, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPendingPayment}, nil)
+
+				client.EXPECT().
+					ReleaseParts(ctx, mock.Anything).
+					Return(nil)
 
 				repo.EXPECT().
 					Update(ctx, mock.MatchedBy(func(o model.Order) bool {
@@ -52,7 +56,7 @@ func TestCancel(t *testing.T) {
 		{
 			name: "ошибка: заказ уже оплачен",
 			args: args{id: orderID},
-			setupMock: func(repo *mocks.OrderRepository) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
 				repo.EXPECT().
 					Get(ctx, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPaid}, nil)
@@ -62,7 +66,7 @@ func TestCancel(t *testing.T) {
 		{
 			name: "ошибка: заказ уже отменен",
 			args: args{id: orderID},
-			setupMock: func(repo *mocks.OrderRepository) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
 				repo.EXPECT().
 					Get(ctx, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusCancelled}, nil)
@@ -72,7 +76,7 @@ func TestCancel(t *testing.T) {
 		{
 			name: "ошибка: заказ не найден",
 			args: args{id: orderID},
-			setupMock: func(repo *mocks.OrderRepository) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
 				repo.EXPECT().
 					Get(ctx, orderID).
 					Return(model.Order{}, errs.ErrOrderNotFound)
@@ -87,11 +91,12 @@ func TestCancel(t *testing.T) {
 
 			orderRepo := mocks.NewOrderRepository(t)
 			inventoryClient := mocks.NewInventoryClient(t)
+			txManager := mocks.NewTxManager(t)
 			paymentClient := mocks.NewPaymentClient(t)
 
-			tc.setupMock(orderRepo)
+			tc.setupMock(orderRepo, inventoryClient)
 
-			svc := NewService(orderRepo, paymentClient, inventoryClient)
+			svc := NewService(orderRepo, paymentClient, inventoryClient, txManager)
 			err := svc.Cancel(ctx, uuid.MustParse(tc.args.id))
 
 			if tc.expectedErr != nil {

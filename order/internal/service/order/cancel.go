@@ -16,14 +16,13 @@ func (s *service) Cancel(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("отменить заказ: %w", err)
 	}
 
-	if order.Status != model.OrderStatusPendingPayment {
-		if order.Status == model.OrderStatusPaid {
-			return fmt.Errorf("отменить заказ: %w", errs.ErrOrderAlreadyPaid)
-		}
-		if order.Status == model.OrderStatusCancelled {
-			return fmt.Errorf("отменить заказ: %w", errs.ErrOrderCancelled)
-		}
-		return fmt.Errorf("отменить заказ: %w", errs.ErrOrderStatusConflict)
+	if err = checkCancelStatus(order.Status); err != nil {
+		return err
+	}
+
+	err = s.inventoryClient.ReleaseParts(ctx, order.PartUUIDs())
+	if err != nil {
+		return fmt.Errorf("отменить заказ: %w", err)
 	}
 
 	order.Status = model.OrderStatusCancelled
@@ -32,5 +31,18 @@ func (s *service) Cancel(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("отменить заказ: %w", err)
 	}
 
+	return nil
+}
+
+func checkCancelStatus(status model.OrderStatus) error {
+	if status != model.OrderStatusPendingPayment {
+		if status == model.OrderStatusPaid {
+			return fmt.Errorf("отменить заказ: %w", errs.ErrOrderAlreadyPaid)
+		}
+		if status == model.OrderStatusCancelled {
+			return fmt.Errorf("отменить заказ: %w", errs.ErrOrderCancelled)
+		}
+		return fmt.Errorf("отменить заказ: %w", errs.ErrOrderStatusConflict)
+	}
 	return nil
 }

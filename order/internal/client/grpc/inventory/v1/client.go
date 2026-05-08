@@ -23,10 +23,7 @@ func New(c inventoryv1.InventoryServiceClient) *client {
 }
 
 func (c *client) ListParts(ctx context.Context, uuids []uuid.UUID) ([]model.Part, error) {
-	uuidsStr := make([]string, len(uuids))
-	for i, u := range uuids {
-		uuidsStr[i] = u.String()
-	}
+	uuidsStr := uuidsToStr(uuids)
 
 	resp, err := c.inventoryClient.ListParts(ctx, &inventoryv1.ListPartsRequest{
 		Uuids: uuidsStr,
@@ -40,4 +37,60 @@ func (c *client) ListParts(ctx context.Context, uuids []uuid.UUID) ([]model.Part
 	}
 
 	return converter.PartsToModel(resp.GetParts()), nil
+}
+
+func (c *client) ValidateCompatibility(ctx context.Context, slots model.ShipSlots) error {
+	_, err := c.inventoryClient.ValidateCompatibility(ctx, &inventoryv1.ValidateCompatibilityRequest{
+		HullUuid:   slots.Hull,
+		EngineUuid: slots.Engine,
+		ShieldUuid: slots.Shield,
+		WeaponUuid: slots.Weapon,
+	})
+	if err != nil {
+		st, ok := status.FromError(err)
+		if !ok {
+			return err
+		}
+		if st.Code() == codes.InvalidArgument {
+			return errs.ErrPartTypeMismatch
+		}
+		if st.Code() == codes.FailedPrecondition {
+			return errs.ErrIncompatibleParts
+		}
+		return fmt.Errorf("проверить совместимость деталей: %w", err)
+	}
+
+	return nil
+}
+
+func (c *client) ReserveParts(ctx context.Context, uuids []uuid.UUID) error {
+	uuidsStr := uuidsToStr(uuids)
+
+	_, err := c.inventoryClient.ReserveParts(ctx, &inventoryv1.ReservePartsRequest{
+		Uuids: uuidsStr,
+	})
+	if err != nil {
+		return fmt.Errorf("зарезервировать детали: %w", err)
+	}
+	return nil
+}
+
+func (c *client) ReleaseParts(ctx context.Context, uuids []uuid.UUID) error {
+	uuidsStr := uuidsToStr(uuids)
+
+	_, err := c.inventoryClient.ReleaseParts(ctx, &inventoryv1.ReleasePartsRequest{
+		Uuids: uuidsStr,
+	})
+	if err != nil {
+		return fmt.Errorf("освободить детали: %w", err)
+	}
+	return nil
+}
+
+func uuidsToStr(uuids []uuid.UUID) []string {
+	uuidsStr := make([]string, len(uuids))
+	for i, u := range uuids {
+		uuidsStr[i] = u.String()
+	}
+	return uuidsStr
 }
