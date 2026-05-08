@@ -376,11 +376,17 @@ func (x *ListPartsResponse) GetParts() []*Part {
 	return nil
 }
 
-// Запрос на проверку совместимости деталей
+// Запрос на проверку совместимости деталей по слотам корабля
 type ValidateCompatibilityRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// UUID деталей для проверки
-	Uuids         []string `protobuf:"bytes,1,rep,name=uuids,proto3" json:"uuids,omitempty"`
+	// UUID детали в слоте корпуса (обязательный слот)
+	HullUuid string `protobuf:"bytes,1,opt,name=hull_uuid,json=hullUuid,proto3" json:"hull_uuid,omitempty"`
+	// UUID детали в слоте двигателя (обязательный слот)
+	EngineUuid string `protobuf:"bytes,2,opt,name=engine_uuid,json=engineUuid,proto3" json:"engine_uuid,omitempty"`
+	// UUID детали в слоте щита (опциональный слот, пустая строка — слот не используется)
+	ShieldUuid string `protobuf:"bytes,3,opt,name=shield_uuid,json=shieldUuid,proto3" json:"shield_uuid,omitempty"`
+	// UUID детали в слоте оружия (опциональный слот, пустая строка — слот не используется)
+	WeaponUuid    string `protobuf:"bytes,4,opt,name=weapon_uuid,json=weaponUuid,proto3" json:"weapon_uuid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -415,11 +421,32 @@ func (*ValidateCompatibilityRequest) Descriptor() ([]byte, []int) {
 	return file_inventory_v1_inventory_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *ValidateCompatibilityRequest) GetUuids() []string {
+func (x *ValidateCompatibilityRequest) GetHullUuid() string {
 	if x != nil {
-		return x.Uuids
+		return x.HullUuid
 	}
-	return nil
+	return ""
+}
+
+func (x *ValidateCompatibilityRequest) GetEngineUuid() string {
+	if x != nil {
+		return x.EngineUuid
+	}
+	return ""
+}
+
+func (x *ValidateCompatibilityRequest) GetShieldUuid() string {
+	if x != nil {
+		return x.ShieldUuid
+	}
+	return ""
+}
+
+func (x *ValidateCompatibilityRequest) GetWeaponUuid() string {
+	if x != nil {
+		return x.WeaponUuid
+	}
+	return ""
 }
 
 // Ответ на проверку совместимости (пустой — значит совместимы)
@@ -647,9 +674,15 @@ const file_inventory_v1_inventory_proto_rawDesc = "" +
 	"\tpart_type\x18\x01 \x01(\x0e2\x16.inventory.v1.PartTypeR\bpartType\x12\x14\n" +
 	"\x05uuids\x18\x02 \x03(\tR\x05uuids\"=\n" +
 	"\x11ListPartsResponse\x12(\n" +
-	"\x05parts\x18\x01 \x03(\v2\x12.inventory.v1.PartR\x05parts\"4\n" +
-	"\x1cValidateCompatibilityRequest\x12\x14\n" +
-	"\x05uuids\x18\x01 \x03(\tR\x05uuids\"\x1f\n" +
+	"\x05parts\x18\x01 \x03(\v2\x12.inventory.v1.PartR\x05parts\"\x9e\x01\n" +
+	"\x1cValidateCompatibilityRequest\x12\x1b\n" +
+	"\thull_uuid\x18\x01 \x01(\tR\bhullUuid\x12\x1f\n" +
+	"\vengine_uuid\x18\x02 \x01(\tR\n" +
+	"engineUuid\x12\x1f\n" +
+	"\vshield_uuid\x18\x03 \x01(\tR\n" +
+	"shieldUuid\x12\x1f\n" +
+	"\vweapon_uuid\x18\x04 \x01(\tR\n" +
+	"weaponUuid\"\x1f\n" +
 	"\x1dValidateCompatibilityResponse\"+\n" +
 	"\x13ReservePartsRequest\x12\x14\n" +
 	"\x05uuids\x18\x01 \x03(\tR\x05uuids\"\x16\n" +
@@ -668,7 +701,7 @@ const file_inventory_v1_inventory_proto_rawDesc = "" +
 	"\tListParts\x12\x1e.inventory.v1.ListPartsRequest\x1a\x1f.inventory.v1.ListPartsResponse\x12p\n" +
 	"\x15ValidateCompatibility\x12*.inventory.v1.ValidateCompatibilityRequest\x1a+.inventory.v1.ValidateCompatibilityResponse\x12U\n" +
 	"\fReserveParts\x12!.inventory.v1.ReservePartsRequest\x1a\".inventory.v1.ReservePartsResponse\x12U\n" +
-	"\fReleaseParts\x12!.inventory.v1.ReleasePartsRequest\x1a\".inventory.v1.ReleasePartsResponseBUZSgithub.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1;inventoryv1b\x06proto3"
+	"\fReleaseParts\x12!.inventory.v1.ReleasePartsRequest\x1a\".inventory.v1.ReleasePartsResponseB>Z<github.com/student/shared/pkg/proto/inventory/v1;inventoryv1b\x06proto3"
 
 var (
 	file_inventory_v1_inventory_proto_rawDescOnce sync.Once
