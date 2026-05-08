@@ -1,11 +1,13 @@
 package part
 
 type service struct {
-	partRepository PartRepository
+	partRepository       PartRepository
+	compatibilityChecker CompatibilityChecker
 }
 
-func NewService(partRepository PartRepository) *service {
+func NewService(partRepository PartRepository, compatibilityChecker CompatibilityChecker) *service {
 	return &service{
-		partRepository: partRepository,
+		partRepository:       partRepository,
+		compatibilityChecker: compatibilityChecker,
 	}
 }

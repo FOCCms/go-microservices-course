@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -50,9 +51,16 @@ func (a *App) Run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	a.startGracefulShutdown(ctx, cancel)
+	go func() {
+		if err := a.runGRPCServer(); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+			slog.Error("ошибка gRPC сервера", "error", err)
+			cancel()
+		}
+	}()
 
-	return a.runGRPCServer()
+	<-ctx.Done()
+	closeAll()
+	return nil
 }
 
 func (a *App) initDeps(ctx context.Context) error {
@@ -104,10 +112,6 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	opts = append(opts, Interceptors()...)
 
 	a.grpcServer = grpc.NewServer(opts...)
-	closer.Add("gRPC server", func(_ context.Context) error {
-		a.grpcServer.GracefulStop()
-		return nil
-	})
 
 	reflection.Register(a.grpcServer)
 	health.RegisterService(a.grpcServer)
@@ -117,18 +121,13 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 		return fmt.Errorf("инициализировать grpc сервер: %w", err)
 	}
 
+	closer.Add("gRPC server", func(_ context.Context) error {
+		a.grpcServer.GracefulStop()
+		return nil
+	})
+
 	inventoryv1.RegisterInventoryServiceServer(a.grpcServer, api)
 	return nil
-}
-
-func (a *App) startGracefulShutdown(ctx context.Context, cancel context.CancelFunc) {
-	go func() {
-		// Ждём сигнал от ОС или падение сервера.
-		<-ctx.Done()
-		cancel()
-
-		closeAll()
-	}()
 }
 
 func closeAll() {

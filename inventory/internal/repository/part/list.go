@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/converter"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
 )
@@ -15,10 +15,9 @@ import (
 func (r *repository) List(ctx context.Context, filter record.PartFilter) ([]model.Part, error) {
 	var rows pgx.Rows
 	var err error
-
 	if len(filter.UUIDs) > 0 {
 		const query = `
-				SELECT p.uuid, p.name, p.description, p.part_type, p.price, p.stock_quantity, p.created_at
+				SELECT p.uuid, p.name, p.description, p.part_type, p.price, p.stock_quantity, p.properties, p.reserved, p.created_at
 		    FROM parts p
 		    JOIN unnest($1::uuid[]) WITH ORDINALITY AS input_uuids(uuid, order_num)
 		    ON p.uuid = input_uuids.uuid
@@ -27,7 +26,7 @@ func (r *repository) List(ctx context.Context, filter record.PartFilter) ([]mode
 		rows, err = r.pool.Query(ctx, query, filter.UUIDs)
 	} else {
 		const query = `
-			SELECT uuid, name, description, part_type, price, stock_quantity, created_at
+			SELECT uuid, name, description, part_type, price, stock_quantity, properties, reserved, created_at
 			FROM parts
 			WHERE $1 = 'UNSPECIFIED' OR part_type = $1
 			ORDER BY name ASC
@@ -51,7 +50,11 @@ func (r *repository) List(ctx context.Context, filter record.PartFilter) ([]mode
 
 	parts := make([]model.Part, 0, len(pts))
 	for _, p := range pts {
-		parts = append(parts, converter.PartToModel(p))
+		part, err := converter.PartRecordToModel(p)
+		if err != nil {
+			return nil, fmt.Errorf("считать строки: %w", err)
+		}
+		parts = append(parts, part)
 	}
 
 	return parts, nil

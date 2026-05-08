@@ -5,15 +5,17 @@ import (
 	"testing"
 	"time"
 
-	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
-	model "github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/service/part/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
+	model "github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/service/application/part/mocks"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/service/domain"
 )
 
 func TestList(t *testing.T) {
@@ -35,14 +37,14 @@ func TestList(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		filter    model.PartFilter
+		filter    valueobject.PartFilter
 		setupMock func(repo *mocks.PartRepository)
 		want      []model.Part
 		wantErr   error
 	}{
 		{
 			name:   "успешный список по UUID",
-			filter: model.PartFilter{UUIDs: []string{partID}},
+			filter: valueobject.PartFilter{UUIDs: []string{partID}},
 			setupMock: func(repo *mocks.PartRepository) {
 				repo.EXPECT().List(ctx, mock.MatchedBy(func(f record.PartFilter) bool {
 					return len(f.UUIDs) == 1 && f.UUIDs[0] == partID
@@ -53,14 +55,14 @@ func TestList(t *testing.T) {
 		},
 		{
 			name:      "ошибка: неверный UUID в фильтре",
-			filter:    model.PartFilter{UUIDs: []string{"невалидный uuid"}},
+			filter:    valueobject.PartFilter{UUIDs: []string{"невалидный uuid"}},
 			setupMock: func(repo *mocks.PartRepository) {},
 			want:      []model.Part{},
 			wantErr:   errs.ErrInvalidUUID,
 		},
 		{
 			name:   "успешная сортировка при пустых UUID",
-			filter: model.PartFilter{UUIDs: []string{}, PartType: valueobject.PartTypeUnspecified},
+			filter: valueobject.PartFilter{UUIDs: []string{}, PartType: valueobject.PartTypeUnspecified},
 			setupMock: func(repo *mocks.PartRepository) {
 				repo.EXPECT().List(ctx, mock.Anything).Return(sortedParts, nil)
 			},
@@ -77,9 +79,10 @@ func TestList(t *testing.T) {
 			t.Parallel()
 
 			repo := mocks.NewPartRepository(t)
+
 			tc.setupMock(repo)
 
-			svc := NewService(repo)
+			svc := NewService(repo, domain.NewCompatibilityChecker())
 			res, err := svc.List(ctx, tc.filter)
 
 			if tc.wantErr != nil {

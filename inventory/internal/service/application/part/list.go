@@ -8,10 +8,11 @@ import (
 
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
 )
 
-func (s *service) List(ctx context.Context, filter model.PartFilter) ([]model.Part, error) {
+func (s *service) List(ctx context.Context, filter valueobject.PartFilter) ([]model.Part, error) {
 	// Валидируем параметры фильтра.
 	for _, id := range filter.UUIDs {
 		if err := uuid.Validate(id); err != nil {

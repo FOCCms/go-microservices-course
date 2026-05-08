@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/service/part/mocks"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/service/application/part/mocks"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/service/domain"
 )
 
 func TestGet(t *testing.T) {
@@ -64,9 +65,10 @@ func TestGet(t *testing.T) {
 			t.Parallel()
 
 			repo := mocks.NewPartRepository(t)
+			checker := domain.NewCompatibilityChecker()
 			tc.setupMock(repo)
 
-			svc := NewService(repo)
+			svc := NewService(repo, checker)
 			res, err := svc.Get(ctx, tc.idStr)
 
 			if tc.err != nil {

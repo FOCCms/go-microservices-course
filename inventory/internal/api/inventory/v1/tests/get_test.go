@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +14,8 @@ import (
 	v1 "github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1/mocks"
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 )
 
@@ -21,8 +23,9 @@ func TestGetPart(t *testing.T) {
 	t.Parallel()
 
 	var (
-		ctx    = context.Background()
-		partID = gofakeit.UUID()
+		ctx     = context.Background()
+		partID  = gofakeit.UUID()
+		anyTime = time.Now()
 	)
 
 	tests := []struct {
@@ -37,7 +40,8 @@ func TestGetPart(t *testing.T) {
 			setupMock: func(svc *mocks.PartService) {
 				svc.EXPECT().
 					Get(ctx, partID).
-					Return(model.Part{UUID: partID, Name: "Тестовый компонент"}, nil)
+					Return(
+						model.RestorePart(partID, "Тестовый компонент", "", "", 0, 0, 0, valueobject.PartProperties{}, anyTime), nil)
 			},
 			wantCode: codes.OK,
 		},

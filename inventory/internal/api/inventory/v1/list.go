@@ -9,16 +9,16 @@ import (
 
 	"github.com/FOCCms/go-microservices-course/inventory/internal/converter"
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 )
 
 // ListParts возвращает список деталей с опциональной фильтрацией по типу.
-func (s *api) ListParts(
+func (a *api) ListParts(
 	ctx context.Context,
 	req *inventoryv1.ListPartsRequest,
 ) (*inventoryv1.ListPartsResponse, error) {
-	parts, err := s.partService.List(ctx, model.PartFilter{
+	parts, err := a.partService.List(ctx, valueobject.PartFilter{
 		UUIDs:    req.GetUuids(),
 		PartType: converter.ProtoPartTypeToPartType(req.PartType),
 	})

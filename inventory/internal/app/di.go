@@ -9,15 +9,21 @@ import (
 	partV1API "github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/config"
 	partRepository "github.com/FOCCms/go-microservices-course/inventory/internal/repository/part"
-	partService "github.com/FOCCms/go-microservices-course/inventory/internal/service/part"
+	partService "github.com/FOCCms/go-microservices-course/inventory/internal/service/application/part"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/service/domain"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 )
 
 type diContainer struct {
-	pgPool             *pgxpool.Pool
-	inventoryRepo      partService.PartRepository
-	inventoryService   partV1API.PartService
+	pgPool *pgxpool.Pool
+
+	inventoryRepo partService.PartRepository
+
+	compatibilityChecker partService.CompatibilityChecker
+
+	inventoryService partV1API.PartService
+
 	inventoryV1Handler inventoryv1.InventoryServiceServer
 }
 
@@ -57,13 +63,21 @@ func (d *diContainer) InventoryRepo(ctx context.Context) (partService.PartReposi
 	return d.inventoryRepo, nil
 }
 
+func (d *diContainer) CompatibilityChecker() partService.CompatibilityChecker {
+	if d.compatibilityChecker == nil {
+		d.compatibilityChecker = domain.NewCompatibilityChecker()
+	}
+
+	return d.compatibilityChecker
+}
+
 func (d *diContainer) InventoryService(ctx context.Context) (partV1API.PartService, error) {
 	if d.inventoryService == nil {
 		repo, err := d.InventoryRepo(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать сервис: %w", err)
 		}
-		d.inventoryService = partService.NewService(repo)
+		d.inventoryService = partService.NewService(repo, d.CompatibilityChecker())
 	}
 
 	return d.inventoryService, nil

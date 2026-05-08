@@ -20,8 +20,19 @@ func (a *api) CreateOrder(ctx context.Context, req *orderv1.CreateOrderRequest) 
 				Message: err.Error(),
 			}, nil
 		}
-
 		if errors.Is(err, errs.ErrOutOfStock) {
+			return &orderv1.CreateOrderConflict{
+				Code:    http.StatusConflict,
+				Message: err.Error(),
+			}, nil
+		}
+		if errors.Is(err, errs.ErrPartTypeMismatch) {
+			return &orderv1.CreateOrderBadRequest{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
+			}, nil
+		}
+		if errors.Is(err, errs.ErrIncompatibleParts) {
 			return &orderv1.CreateOrderConflict{
 				Code:    http.StatusConflict,
 				Message: err.Error(),
