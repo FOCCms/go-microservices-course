@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
 )
 
@@ -16,13 +15,13 @@ func (s *service) Release(ctx context.Context, uuids []string) error {
 		return fmt.Errorf("освободить детали: %w", err)
 	}
 
-	for _, part := range parts {
-		if err = part.Release(); err != nil {
-			return fmt.Errorf("освободить детали: %w", errs.ErrOutOfStock)
+	for i := range parts {
+		if err = parts[i].Release(); err != nil {
+			return fmt.Errorf("освободить детали: %w", err)
 		}
 	}
 
-	err = s.partRepository.UpdateReservedBatch(ctx, parts)
+	err = s.partRepository.UpdateReservationsBatch(ctx, parts)
 	if err != nil {
 		return fmt.Errorf("освободить детали: %w", err)
 	}

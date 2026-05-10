@@ -22,7 +22,7 @@ func (s *service) Reserve(ctx context.Context, uuids []string) error {
 		}
 	}
 
-	err = s.partRepository.UpdateReservedBatch(ctx, parts)
+	err = s.partRepository.UpdateReservationsBatch(ctx, parts)
 	if err != nil {
 		return fmt.Errorf("зарезервировать детали: %w", err)
 	}

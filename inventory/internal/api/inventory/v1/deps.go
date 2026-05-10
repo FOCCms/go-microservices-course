@@ -12,4 +12,5 @@ type PartService interface {
 	List(ctx context.Context, filter valueobject.PartFilter) ([]model.Part, error)
 	ValidateCompatibility(ctx context.Context, slots model.ShipSlots) error
 	Reserve(ctx context.Context, uuids []string) error
+	Release(ctx context.Context, uuids []string) error
 }

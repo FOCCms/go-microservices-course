@@ -12,10 +12,10 @@ import (
 )
 
 func (a *api) ReleaseParts(ctx context.Context, req *inventoryv1.ReleasePartsRequest) (*inventoryv1.ReleasePartsResponse, error) {
-	err := a.partService.Reserve(ctx, req.Uuids)
+	err := a.partService.Release(ctx, req.Uuids)
 	if err != nil {
-		if errors.Is(err, errs.ErrOutOfStock) {
-			return nil, status.Errorf(codes.FailedPrecondition, "деталь закончилась")
+		if errors.Is(err, errs.ErrNothingToRelease) {
+			return nil, status.Errorf(codes.FailedPrecondition, "нечего освобождать")
 		}
 		if errors.Is(err, errs.ErrPartNotFound) {
 			return nil, status.Errorf(codes.NotFound, "деталь не найдена")

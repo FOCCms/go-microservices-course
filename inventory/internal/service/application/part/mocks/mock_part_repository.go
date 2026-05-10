@@ -176,12 +176,12 @@ func (_c *PartRepository_List_Call) RunAndReturn(run func(ctx context.Context, f
 	return _c
 }
 
-// UpdateReservedBatch provides a mock function for the type PartRepository
-func (_mock *PartRepository) UpdateReservedBatch(ctx context.Context, parts []model.Part) error {
+// UpdateReservationsBatch provides a mock function for the type PartRepository
+func (_mock *PartRepository) UpdateReservationsBatch(ctx context.Context, parts []model.Part) error {
 	ret := _mock.Called(ctx, parts)
 
 	if len(ret) == 0 {
-		panic("no return value specified for UpdateReservedBatch")
+		panic("no return value specified for UpdateReservationsBatch")
 	}
 
 	var r0 error
@@ -193,19 +193,19 @@ func (_mock *PartRepository) UpdateReservedBatch(ctx context.Context, parts []mo
 	return r0
 }
 
-// PartRepository_UpdateReservedBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateReservedBatch'
-type PartRepository_UpdateReservedBatch_Call struct {
+// PartRepository_UpdateReservationsBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateReservationsBatch'
+type PartRepository_UpdateReservationsBatch_Call struct {
 	*mock.Call
 }
 
-// UpdateReservedBatch is a helper method to define mock.On call
+// UpdateReservationsBatch is a helper method to define mock.On call
 //   - ctx context.Context
 //   - parts []model.Part
-func (_e *PartRepository_Expecter) UpdateReservedBatch(ctx interface{}, parts interface{}) *PartRepository_UpdateReservedBatch_Call {
-	return &PartRepository_UpdateReservedBatch_Call{Call: _e.mock.On("UpdateReservedBatch", ctx, parts)}
+func (_e *PartRepository_Expecter) UpdateReservationsBatch(ctx interface{}, parts interface{}) *PartRepository_UpdateReservationsBatch_Call {
+	return &PartRepository_UpdateReservationsBatch_Call{Call: _e.mock.On("UpdateReservationsBatch", ctx, parts)}
 }
 
-func (_c *PartRepository_UpdateReservedBatch_Call) Run(run func(ctx context.Context, parts []model.Part)) *PartRepository_UpdateReservedBatch_Call {
+func (_c *PartRepository_UpdateReservationsBatch_Call) Run(run func(ctx context.Context, parts []model.Part)) *PartRepository_UpdateReservationsBatch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -223,12 +223,12 @@ func (_c *PartRepository_UpdateReservedBatch_Call) Run(run func(ctx context.Cont
 	return _c
 }
 
-func (_c *PartRepository_UpdateReservedBatch_Call) Return(err error) *PartRepository_UpdateReservedBatch_Call {
+func (_c *PartRepository_UpdateReservationsBatch_Call) Return(err error) *PartRepository_UpdateReservationsBatch_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *PartRepository_UpdateReservedBatch_Call) RunAndReturn(run func(ctx context.Context, parts []model.Part) error) *PartRepository_UpdateReservedBatch_Call {
+func (_c *PartRepository_UpdateReservationsBatch_Call) RunAndReturn(run func(ctx context.Context, parts []model.Part) error) *PartRepository_UpdateReservationsBatch_Call {
 	_c.Call.Return(run)
 	return _c
 }

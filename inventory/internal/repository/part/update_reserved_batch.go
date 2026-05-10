@@ -6,7 +6,7 @@ import (
 	model "github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
 )
 
-func (r *repository) UpdateReservedBatch(ctx context.Context, parts []model.Part) error {
+func (r *repository) UpdateReservationsBatch(ctx context.Context, parts []model.Part) error {
 	const query = `
 		UPDATE parts AS c
 		SET reserved = batch.reserved

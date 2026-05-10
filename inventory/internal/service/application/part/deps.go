@@ -10,7 +10,7 @@ import (
 type PartRepository interface {
 	Get(ctx context.Context, id string) (model.Part, error)
 	List(ctx context.Context, filter record.PartFilter) ([]model.Part, error)
-	UpdateReservedBatch(ctx context.Context, parts []model.Part) error
+	UpdateReservationsBatch(ctx context.Context, parts []model.Part) error
 }
 
 type CompatibilityChecker interface {
