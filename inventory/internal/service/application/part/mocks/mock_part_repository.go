@@ -10,7 +10,7 @@ package mocks
 import (
 	"context"
 
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -172,6 +172,63 @@ func (_c *PartRepository_List_Call) Return(parts []model.Part, err error) *PartR
 }
 
 func (_c *PartRepository_List_Call) RunAndReturn(run func(ctx context.Context, filter record.PartFilter) ([]model.Part, error)) *PartRepository_List_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateReservationsBatch provides a mock function for the type PartRepository
+func (_mock *PartRepository) UpdateReservationsBatch(ctx context.Context, parts []model.Part) error {
+	ret := _mock.Called(ctx, parts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateReservationsBatch")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []model.Part) error); ok {
+		r0 = returnFunc(ctx, parts)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// PartRepository_UpdateReservationsBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateReservationsBatch'
+type PartRepository_UpdateReservationsBatch_Call struct {
+	*mock.Call
+}
+
+// UpdateReservationsBatch is a helper method to define mock.On call
+//   - ctx context.Context
+//   - parts []model.Part
+func (_e *PartRepository_Expecter) UpdateReservationsBatch(ctx interface{}, parts interface{}) *PartRepository_UpdateReservationsBatch_Call {
+	return &PartRepository_UpdateReservationsBatch_Call{Call: _e.mock.On("UpdateReservationsBatch", ctx, parts)}
+}
+
+func (_c *PartRepository_UpdateReservationsBatch_Call) Run(run func(ctx context.Context, parts []model.Part)) *PartRepository_UpdateReservationsBatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []model.Part
+		if args[1] != nil {
+			arg1 = args[1].([]model.Part)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *PartRepository_UpdateReservationsBatch_Call) Return(err error) *PartRepository_UpdateReservationsBatch_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *PartRepository_UpdateReservationsBatch_Call) RunAndReturn(run func(ctx context.Context, parts []model.Part) error) *PartRepository_UpdateReservationsBatch_Call {
 	_c.Call.Return(run)
 	return _c
 }

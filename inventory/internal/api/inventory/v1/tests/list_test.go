@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
@@ -14,7 +16,8 @@ import (
 	v1 "github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1/mocks"
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 )
 
@@ -22,9 +25,12 @@ func TestListParts(t *testing.T) {
 	t.Parallel()
 
 	var (
-		ctx   = context.Background()
-		uuid1 = gofakeit.UUID()
-		uuid2 = gofakeit.UUID()
+		ctx      = context.Background()
+		uuid1    = gofakeit.UUID()
+		uuid2    = gofakeit.UUID()
+		anyTime  = time.Now()
+		anyUUID1 = uuid.New()
+		anyUUID2 = uuid.New()
 	)
 
 	tests := []struct {
@@ -38,10 +44,13 @@ func TestListParts(t *testing.T) {
 			req:  &inventoryv1.ListPartsRequest{Uuids: []string{uuid1, uuid2}},
 			setupMock: func(svc *mocks.PartService) {
 				svc.EXPECT().
-					List(ctx, mock.MatchedBy(func(f model.PartFilter) bool {
+					List(ctx, mock.MatchedBy(func(f valueobject.PartFilter) bool {
 						return len(f.UUIDs) == 2
 					})).
-					Return([]model.Part{{Name: "Деталь 1"}, {Name: "Деталь 2"}}, nil)
+					Return([]model.Part{
+						model.RestorePart(anyUUID1.String(), "Деталь 1", "", "", 0, 0, 0, valueobject.PartProperties{}, anyTime),
+						model.RestorePart(anyUUID2.String(), "Деталь 2", "", "", 0, 0, 0, valueobject.PartProperties{}, anyTime),
+					}, nil)
 			},
 			wantCode: codes.OK,
 		},

@@ -19,6 +19,17 @@ type Order struct {
 	CreatedAt       time.Time
 }
 
+func (o *Order) AssemblePartUUIDs() []uuid.UUID {
+	uuids := []uuid.UUID{o.HullUUID, o.EngineUUID}
+	if o.ShieldUUID != nil {
+		uuids = append(uuids, *o.ShieldUUID)
+	}
+	if o.WeaponUUID != nil {
+		uuids = append(uuids, *o.WeaponUUID)
+	}
+	return uuids
+}
+
 type OrderStatus string
 
 const (
@@ -34,7 +45,7 @@ type CreateOrderRequest struct {
 	WeaponUUID *uuid.UUID
 }
 
-func (r *CreateOrderRequest) PartUUIDs() []uuid.UUID {
+func (r *CreateOrderRequest) AssemblePartUUIDs() []uuid.UUID {
 	uuids := []uuid.UUID{r.HullUUID, r.EngineUUID}
 	if r.ShieldUUID != nil {
 		uuids = append(uuids, *r.ShieldUUID)

@@ -19,7 +19,7 @@ func NewHTTPHandler(pool *pgxpool.Pool, txManager orderService.TxManager, invent
 	pc := paymentV1Client.New(paymentClient)
 	ic := invetntoryV1Client.New(inventoryClient)
 
-	service := orderService.NewService(orderRepo, pc, ic)
+	service := orderService.NewService(orderRepo, pc, ic, txManager)
 
 	api := orderV1API.NewAPI(service)
 

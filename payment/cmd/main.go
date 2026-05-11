@@ -3,74 +3,29 @@ package main
 import (
 	"context"
 	"log/slog"
-	"net"
-	"os/signal"
-	"syscall"
-	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/reflection"
+	"github.com/joho/godotenv"
 
-	"github.com/FOCCms/go-microservices-course/payment/pkg/app"
-)
-
-const (
-	grpcAddress               = ":50052"
-	grpcMaxConnectionIdle     = 15 * time.Minute
-	grpcMaxConnectionAge      = 30 * time.Minute
-	grpcMaxConnectionAgeGrace = 10 * time.Second
-	grpcKeepaliveTime         = 5 * time.Minute
-	grpcKeepaliveTimeout      = 5 * time.Second
-	grpcMinPingInterval       = 5 * time.Second
+	"github.com/FOCCms/go-microservices-course/payment/internal/app"
+	"github.com/FOCCms/go-microservices-course/payment/internal/config"
 )
 
 func main() {
-	lis, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", grpcAddress)
+	// .env опционален — ошибка загрузки допустима.
+	err := godotenv.Load("payment.env")
 	if err != nil {
-		slog.Error("не удалось создать listener", "error", err)
+		slog.Warn("не удалось загрузить .env конфигурацию", "error", err)
+	}
+
+	config.MustLoad(config.ResolveConfigPath())
+
+	a, err := app.New(context.Background())
+	if err != nil {
+		slog.Error("ошибка запуска приложения", "error", err)
 		return
 	}
 
-	opts := make([]grpc.ServerOption, 0, 2+len(app.Interceptors()))
-	opts = append(opts,
-		grpc.KeepaliveParams(
-			keepalive.ServerParameters{
-				MaxConnectionIdle:     grpcMaxConnectionIdle,
-				MaxConnectionAge:      grpcMaxConnectionAge,
-				MaxConnectionAgeGrace: grpcMaxConnectionAgeGrace,
-				Time:                  grpcKeepaliveTime,
-				Timeout:               grpcKeepaliveTimeout,
-			}),
-		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-			MinTime:             grpcMinPingInterval,
-			PermitWithoutStream: true,
-		}))
-	opts = append(opts, app.Interceptors()...)
-
-	grpcServer := grpc.NewServer(opts...)
-
-	app.RegisterServices(grpcServer)
-
-	// Включаем reflection для postman/grpcurl
-	reflection.Register(grpcServer)
-
-	slog.Info("запуск PaymentService", "адрес", grpcAddress)
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-
-	go func() {
-		slog.Info("🚀 gRPC сервер запущен", "address", grpcAddress)
-		if serveErr := grpcServer.Serve(lis); serveErr != nil {
-			slog.Error("ошибка запуска сервера", "error", serveErr)
-			cancel() // будим main, чтобы не висеть бесконечно
-		}
-	}()
-
-	// Ждём сигнал от ОС или падение сервера.
-	<-ctx.Done()
-	slog.Info("🛑 остановка gRPC сервера")
-	grpcServer.GracefulStop()
-	slog.Info("✅ сервер остановлен")
+	if err := a.Run(); err != nil {
+		slog.Error("ошибка при работе приложения", "error", err)
+	}
 }

@@ -11,26 +11,41 @@ import (
 )
 
 func (s *service) Cancel(ctx context.Context, id uuid.UUID) error {
-	order, err := s.orderRepository.Get(ctx, id.String())
-	if err != nil {
-		return fmt.Errorf("отменить заказ: %w", err)
-	}
+	err := s.txManager.Do(ctx, func(ctx context.Context) error {
+		order, err := s.orderRepository.Get(ctx, id.String())
+		if err != nil {
+			return fmt.Errorf("отменить заказ: %w", err)
+		}
 
-	if order.Status != model.OrderStatusPendingPayment {
-		if order.Status == model.OrderStatusPaid {
+		if err = checkCancelStatus(order.Status); err != nil {
+			return err
+		}
+
+		err = s.inventoryClient.ReleaseParts(ctx, order.AssemblePartUUIDs())
+		if err != nil {
+			return fmt.Errorf("отменить заказ: %w", err)
+		}
+
+		order.Status = model.OrderStatusCancelled
+		err = s.orderRepository.Update(ctx, order)
+		if err != nil {
+			return fmt.Errorf("отменить заказ: не удалось освободить детали в инвентаре: %w", err)
+		}
+
+		return nil
+	})
+	return err
+}
+
+func checkCancelStatus(status model.OrderStatus) error {
+	if status != model.OrderStatusPendingPayment {
+		if status == model.OrderStatusPaid {
 			return fmt.Errorf("отменить заказ: %w", errs.ErrOrderAlreadyPaid)
 		}
-		if order.Status == model.OrderStatusCancelled {
+		if status == model.OrderStatusCancelled {
 			return fmt.Errorf("отменить заказ: %w", errs.ErrOrderCancelled)
 		}
 		return fmt.Errorf("отменить заказ: %w", errs.ErrOrderStatusConflict)
 	}
-
-	order.Status = model.OrderStatusCancelled
-	err = s.orderRepository.Update(ctx, order)
-	if err != nil {
-		return fmt.Errorf("отменить заказ: %w", err)
-	}
-
 	return nil
 }

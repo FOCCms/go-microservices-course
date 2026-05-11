@@ -1,0 +1,11 @@
+http:
+  host: "0.0.0.0"
+  port: "8081"
+
+pg:
+  host: "localhost"
+  port: "5432"
+  database: "order-service"
+  user: "order-service-user"
+  password: "order-service-password"
+  sslmode: "disable"

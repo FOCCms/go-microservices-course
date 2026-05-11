@@ -8,18 +8,18 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
 	repoConverter "github.com/FOCCms/go-microservices-course/inventory/internal/repository/converter"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
 )
 
 func (r *repository) Get(ctx context.Context, id string) (model.Part, error) {
-	const query = `SELECT uuid, name, part_type, price, stock_quantity FROM parts WHERE uuid = $1`
+	const query = `SELECT uuid, name, description, part_type, price, stock_quantity, properties, reserved, created_at FROM parts WHERE uuid = $1`
 
 	var p record.Part
 
 	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&p.UUID, &p.Name, &p.PartType, &p.Price, &p.StockQuantity,
+		&p.UUID, &p.Name, &p.Description, &p.PartType, &p.Price, &p.StockQuantity, &p.Properties, &p.Reserved, &p.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -28,5 +28,5 @@ func (r *repository) Get(ctx context.Context, id string) (model.Part, error) {
 		return model.Part{}, fmt.Errorf("считать деталь: %w", err)
 	}
 
-	return repoConverter.PartToModel(p), nil
+	return repoConverter.PartRecordToModel(p)
 }

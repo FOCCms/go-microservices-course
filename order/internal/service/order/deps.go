@@ -20,6 +20,9 @@ type PaymentClient interface {
 
 type InventoryClient interface {
 	ListParts(ctx context.Context, uuids []uuid.UUID) ([]model.Part, error)
+	ValidateCompatibility(ctx context.Context, slots model.ShipSlots) error
+	ReserveParts(ctx context.Context, uuids []uuid.UUID) error
+	ReleaseParts(ctx context.Context, uuids []uuid.UUID) error
 }
 
 type TxManager interface {

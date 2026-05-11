@@ -47,6 +47,7 @@ func TestCreate(t *testing.T) {
 	type setupMockFunc func(
 		repo *mocks.OrderRepository,
 		client *mocks.InventoryClient,
+		tx *mocks.TxManager,
 	)
 
 	tests := []struct {
@@ -63,10 +64,22 @@ func TestCreate(t *testing.T) {
 					EngineUUID: uuid.MustParse(engineUUID),
 				},
 			},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager) {
+				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+					Run(func(ctx context.Context, f func(context.Context) error) {
+						_ = f(ctx)
+					}).
+					Return(nil)
+
 				client.EXPECT().
 					ListParts(ctx, mock.Anything).
 					Return(partsInStock, nil)
+				client.EXPECT().
+					ValidateCompatibility(ctx, mock.Anything).
+					Return(nil)
+				client.EXPECT().
+					ReserveParts(ctx, mock.Anything).
+					Return(nil)
 
 				repo.EXPECT().
 					Create(ctx, mock.MatchedBy(func(o model.Order) bool {
@@ -84,7 +97,13 @@ func TestCreate(t *testing.T) {
 					EngineUUID: uuid.MustParse(engineUUID),
 				},
 			},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager) {
+				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+					Run(func(ctx context.Context, f func(context.Context) error) {
+						_ = f(ctx)
+					}).
+					Return(errs.ErrPartNotFound)
+
 				client.EXPECT().
 					ListParts(ctx, []uuid.UUID{uuid.MustParse(hullUUID), uuid.MustParse(engineUUID)}).
 					Return(nil, errs.ErrPartNotFound)
@@ -99,12 +118,22 @@ func TestCreate(t *testing.T) {
 					EngineUUID: uuid.MustParse(engineUUID),
 				},
 			},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager) {
+				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+					Run(func(ctx context.Context, f func(context.Context) error) {
+						_ = f(ctx)
+					}).
+					Return(errs.ErrPartNotFound)
+
 				client.EXPECT().
 					ListParts(ctx, []uuid.UUID{uuid.MustParse(hullUUID), uuid.MustParse(engineUUID)}).
 					Return(partsOutOfStock, nil)
+
+				client.EXPECT().
+					ValidateCompatibility(ctx, mock.Anything).
+					Return(errs.ErrPartNotFound)
 			},
-			expected: expected{err: errs.ErrOutOfStock, wantOrderUUID: false},
+			expected: expected{err: errs.ErrPartNotFound, wantOrderUUID: false},
 		},
 	}
 
@@ -115,10 +144,10 @@ func TestCreate(t *testing.T) {
 			orderRepo := mocks.NewOrderRepository(t)
 			inventoryClient := mocks.NewInventoryClient(t)
 			paymentClient := mocks.NewPaymentClient(t)
+			txManager := mocks.NewTxManager(t)
+			tc.setupMock(orderRepo, inventoryClient, txManager)
 
-			tc.setupMock(orderRepo, inventoryClient)
-
-			svc := NewService(orderRepo, paymentClient, inventoryClient)
+			svc := NewService(orderRepo, paymentClient, inventoryClient, txManager)
 			order, err := svc.Create(ctx, tc.args.req)
 
 			if tc.expected.err != nil {
