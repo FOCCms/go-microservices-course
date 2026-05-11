@@ -23,6 +23,11 @@ service InventoryService {
 
   // ReleaseParts освобождает ранее зарезервированные детали
   rpc ReleaseParts(ReleasePartsRequest) returns (ReleasePartsResponse);
+
+  // CommitParts списывает детали со склада после успешной сборки корабля
+  // Вызывается OrderService после получения события ShipAssembled из Kafka
+  // stock -= 1, reserved -= 1 для каждой детали
+  rpc CommitParts(CommitPartsRequest) returns (CommitPartsResponse);
 }
 
 // Тип детали
@@ -125,3 +130,12 @@ message ReleasePartsRequest {
 
 // Ответ на освобождение (пустой — значит успешно)
 message ReleasePartsResponse {}
+
+// Запрос на списание деталей со склада
+message CommitPartsRequest {
+  // UUID деталей для списания
+  repeated string uuids = 1;
+}
+
+// Ответ на списание (пустой — значит успешно)
+message CommitPartsResponse {}
