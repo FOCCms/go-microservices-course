@@ -5,7 +5,7 @@ import (
 
 	"github.com/IBM/sarama"
 
-	"github.com/student/platform/pkg/kafka"
+	"github.com/FOCCms/go-microservices-course/platform/pkg/kafka"
 )
 
 // groupHandler реализует sarama.ConsumerGroupHandler

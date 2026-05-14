@@ -15,7 +15,7 @@ import (
 
 func (r *repository) Get(ctx context.Context, orderUUID string) (model.Order, error) {
 	const query = `
-		SELECT uuid, total_price, status, transaction_uuid, payment_method, created_at, updated_at
+		SELECT uuid, total_price, status, transaction_uuid, payment_method, created_at, updated_at, user_uuid 
 		FROM orders
 		WHERE uuid = $1
 	`

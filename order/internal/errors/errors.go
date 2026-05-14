@@ -6,6 +6,7 @@ var (
 	ErrOrderNotFound       = errors.New("заказ не найден")
 	ErrOrderAlreadyPaid    = errors.New("заказ уже оплачен")
 	ErrOrderCancelled      = errors.New("заказ отменён")
+	ErrOrderAssembled      = errors.New("заказ собран")
 	ErrOrderStatusConflict = errors.New("невалидный статус для операции")
 	ErrPartNotFound        = errors.New("деталь не найдена")
 	ErrOutOfStock          = errors.New("деталь отсутствует на складе")

@@ -35,6 +35,16 @@ func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMet
 		if err != nil {
 			return fmt.Errorf("оплатить заказ: %w", err)
 		}
+
+		err = s.orderProducerService.ProduceOrderPaid(ctx, model.OrderPaidEvent{
+			EventUUID: uuid.New(),
+			OrderUUID: order.UUID,
+			UserUUID:  order.UserUUID,
+		})
+		if err != nil {
+			return fmt.Errorf("оплатить заказ: %w", err)
+		}
+
 		return nil
 	})
 

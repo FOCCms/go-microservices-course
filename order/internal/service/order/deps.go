@@ -28,3 +28,7 @@ type InventoryClient interface {
 type TxManager interface {
 	Do(ctx context.Context, fn func(ctx context.Context) error) error
 }
+
+type OrderProducerService interface {
+	ProduceOrderPaid(ctx context.Context, event model.OrderPaidEvent) error
+}

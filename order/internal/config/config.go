@@ -10,9 +10,11 @@ import (
 )
 
 type Config struct {
-	HTTP   httpConfig   `yaml:"http"`
-	Logger loggerConfig `yaml:"logger"`
-	PG     pgConfig     `yaml:"pg"`
+	HTTP              httpConfig              `yaml:"http"`
+	Logger            loggerConfig            `yaml:"logger"`
+	PG                pgConfig                `yaml:"pg"`
+	Kafka             kafkaConfig             `yaml:"kafka"`
+	OrderPaidProducer orderPaidProducerConfig `yaml:"order_paid_producer"`
 }
 
 var appConfig *Config

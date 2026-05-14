@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package events.v1;
 
-option go_package = "github.com/student/shared/pkg/proto/events/v1;eventsv1";
+option go_package = "github.com/FOCCms/go-microservices-course/shared/pkg/proto/events/v1;eventsv1";
 
 import "google/protobuf/timestamp.proto";
 

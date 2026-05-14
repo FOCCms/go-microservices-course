@@ -51,6 +51,7 @@ func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 			TotalPrice: totalPrice,
 			Status:     model.OrderStatusPendingPayment,
 			CreatedAt:  time.Now(),
+			UserUUID:   req.UserUUID,
 		}
 
 		items := make([]model.OrderItem, len(parts))

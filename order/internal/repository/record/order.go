@@ -10,6 +10,7 @@ type Order struct {
 	PaymentMethod   *string    `db:"payment_method"`
 	CreatedAt       time.Time  `db:"created_at"`
 	UpdatedAt       *time.Time `db:"updated_at"`
+	UserUUID        string     `db:"user_uuid"`
 }
 
 type OrderItem struct {

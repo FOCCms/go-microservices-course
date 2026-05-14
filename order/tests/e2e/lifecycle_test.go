@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	inventoryv1 "github.com/student/shared/pkg/proto/inventory/v1"
+	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 )
 
 // HTTP DTOs дублируются с api_test намеренно: e2e — самостоятельная сьюта,
@@ -58,7 +58,7 @@ type orderDTO struct {
 //  1. POST /orders — создаём заказ, ждём 201
 //  2. POST /orders/{uuid}/pay — оплачиваем, ждём 200 и статус PAID
 //  3. order продьюсит OrderPaid → test-assembler → ShipAssembled
-//  4. order ship-assembled-консьюмер обрабатывает событие, переводит в ASSEMBLED
+//  4. order assembly-assembled-консьюмер обрабатывает событие, переводит в ASSEMBLED
 //  5. Eventually GET /orders/{uuid} — статус ASSEMBLED, transaction_uuid сохранён
 //  6. Проверяем, что CommitParts действительно списал stock_quantity
 func TestE2E_OrderFullLifecycle_Assembled(t *testing.T) {

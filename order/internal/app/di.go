@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	orderProducer "github.com/FOCCms/go-microservices-course/order/internal/producer/order_producer"
+	"github.com/IBM/sarama"
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,19 +20,23 @@ import (
 	orderRepository "github.com/FOCCms/go-microservices-course/order/internal/repository/order"
 	orderSrv "github.com/FOCCms/go-microservices-course/order/internal/service/order"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
+	wrappedKafkaProducer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/producer"
 	orderv1 "github.com/FOCCms/go-microservices-course/shared/pkg/openapi/order/v1"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 )
 
 type diContainer struct {
-	pgPool          *pgxpool.Pool
-	txManager       orderSrv.TxManager
-	orderRepo       orderSrv.OrderRepository
-	inventoryClient orderSrv.InventoryClient
-	paymentClient   orderSrv.PaymentClient
-	orderService    orderV1API.OrderService
-	orderV1Handler  *orderv1.Server
+	pgPool               *pgxpool.Pool
+	txManager            orderSrv.TxManager
+	orderRepo            orderSrv.OrderRepository
+	inventoryClient      orderSrv.InventoryClient
+	paymentClient        orderSrv.PaymentClient
+	orderService         orderV1API.OrderService
+	orderV1Handler       *orderv1.Server
+	orderProducerService orderSrv.OrderProducerService
+	orderPaidProducer    *wrappedKafkaProducer.Producer
+	syncProducer         sarama.SyncProducer
 }
 
 func (d *diContainer) PGPool(ctx context.Context) (*pgxpool.Pool, error) {
@@ -133,6 +139,48 @@ func (d *diContainer) InventoryClient(_ context.Context) (orderSrv.InventoryClie
 	return d.inventoryClient, nil
 }
 
+func (d *diContainer) SyncProducer() (sarama.SyncProducer, error) {
+	if d.syncProducer == nil {
+		p, err := sarama.NewSyncProducer(
+			config.AppConfig().Kafka.Brokers,
+			config.AppConfig().OrderPaidProducer.SaramaConfig(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать SyncProducer: %w", err)
+		}
+
+		closer.Add("Kafka sync producer", func(_ context.Context) error {
+			return p.Close()
+		})
+
+		d.syncProducer = p
+	}
+
+	return d.syncProducer, nil
+}
+
+func (d *diContainer) OrderPaidProducer() (*wrappedKafkaProducer.Producer, error) {
+	if d.orderPaidProducer == nil {
+		p, err := d.SyncProducer()
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать OrderPaidProducer: %w", err)
+		}
+		d.orderPaidProducer = wrappedKafkaProducer.NewProducer(p, config.AppConfig().OrderPaidProducer.TopicName)
+	}
+	return d.orderPaidProducer, nil
+}
+
+func (d *diContainer) OrderProducerService() (orderSrv.OrderProducerService, error) {
+	if d.orderProducerService == nil {
+		p, err := d.OrderPaidProducer()
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать OrderProducerService: %w", err)
+		}
+		d.orderProducerService = orderProducer.NewService(p)
+	}
+	return d.orderProducerService, nil
+}
+
 func (d *diContainer) OrderService(ctx context.Context) (orderV1API.OrderService, error) {
 	if d.orderService == nil {
 		repo, err := d.OrderRepo(ctx)
@@ -151,8 +199,12 @@ func (d *diContainer) OrderService(ctx context.Context) (orderV1API.OrderService
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать сервис: %w", err)
 		}
+		orderProducerService, err := d.OrderProducerService()
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать сервис: %w", err)
+		}
 
-		orderSrv.NewService(repo, paymentClient, inventoryClient, txManager)
+		d.orderService = orderSrv.NewService(repo, paymentClient, inventoryClient, txManager, orderProducerService)
 	}
 	return d.orderService, nil
 }

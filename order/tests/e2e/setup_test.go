@@ -6,7 +6,7 @@
 //
 //	HTTP Pay → orderProducer (Kafka topic order.paid)
 //	         → реальный AssemblyService (build_time_sec=0 для скорости)
-//	         → Kafka topic assembly.ship-assembled
+//	         → Kafka topic assembly.assembly-assembled
 //	         → order/internal/consumer/assembly_consumer
 //	         → CommitParts + UPDATE orders SET status=ASSEMBLED
 //
@@ -41,18 +41,18 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
-	assemblyApp "github.com/student/assembly/pkg/app"
-	invApp "github.com/student/inventory/pkg/app"
-	inventoryClientPkg "github.com/student/order/internal/client/grpc/inventory/v1"
-	assemblyconsumer "github.com/student/order/internal/consumer/assembly_consumer"
-	orderProducer "github.com/student/order/internal/producer/order_producer"
-	orderRepoPkg "github.com/student/order/internal/repository/order"
-	"github.com/student/order/pkg/app"
-	payApp "github.com/student/payment/pkg/app"
-	wrappedKafkaConsumer "github.com/student/platform/pkg/kafka/consumer"
-	wrappedKafkaProducer "github.com/student/platform/pkg/kafka/producer"
-	inventoryv1 "github.com/student/shared/pkg/proto/inventory/v1"
-	paymentv1 "github.com/student/shared/pkg/proto/payment/v1"
+	assemblyApp "github.com/FOCCms/go-microservices-course/assembly/pkg/app"
+	invApp "github.com/FOCCms/go-microservices-course/inventory/pkg/app"
+	inventoryClientPkg "github.com/FOCCms/go-microservices-course/order/internal/client/grpc/inventory/v1"
+	assemblyconsumer "github.com/FOCCms/go-microservices-course/order/internal/consumer/assembly_consumer"
+	orderProducer "github.com/FOCCms/go-microservices-course/order/internal/producer/order_producer"
+	orderRepoPkg "github.com/FOCCms/go-microservices-course/order/internal/repository/order"
+	"github.com/FOCCms/go-microservices-course/order/pkg/app"
+	payApp "github.com/FOCCms/go-microservices-course/payment/pkg/app"
+	wrappedKafkaConsumer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/consumer"
+	wrappedKafkaProducer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/producer"
+	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
+	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 )
 
 // Предзагруженные UUID и цены деталей (из migrations/inventory/00002_seed_parts.sql).
@@ -133,7 +133,7 @@ func runMain(m *testing.M) int {
 	// auto-create нельзя — нужно дождаться готовности
 	suffix := time.Now().UnixNano()
 	orderPaidTopic = fmt.Sprintf("e2e-%d-order.paid", suffix)
-	shipAssembledTopic = fmt.Sprintf("e2e-%d-assembly.ship-assembled", suffix)
+	shipAssembledTopic = fmt.Sprintf("e2e-%d-assembly.assembly-assembled", suffix)
 	assemblyGroupID = fmt.Sprintf("e2e-%d-assembly-service", suffix)
 	orderGroupID = fmt.Sprintf("e2e-%d-order-service", suffix)
 	createTopics(broker, orderPaidTopic, shipAssembledTopic)
@@ -327,7 +327,7 @@ func startOrderShipAssembledConsumer(
 	invClient inventoryv1.InventoryServiceClient,
 ) {
 	cg := mustNew(sarama.NewConsumerGroup([]string{broker}, orderGroupID, consumerConfig()))
-	cleanups.add("order ship-assembled consumer group", func(_ context.Context) error { return cg.Close() })
+	cleanups.add("order assembly-assembled consumer group", func(_ context.Context) error { return cg.Close() })
 
 	wrappedConsumer := wrappedKafkaConsumer.NewConsumer(cg, []string{shipAssembledTopic})
 
@@ -345,7 +345,7 @@ func startOrderShipAssembledConsumer(
 		if err := svc.RunConsumer(ctx); err != nil {
 			// При cancel ctx Consume вернёт ошибку — это нормально, не паникуем.
 			// Логируем для диагностики, если падение настоящее
-			_, _ = fmt.Fprintf(os.Stderr, "order ship-assembled consumer stopped: %v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "order assembly-assembled consumer stopped: %v\n", err)
 		}
 	}()
 }

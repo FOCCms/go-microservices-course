@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/student/platform/pkg/kafka"
+	"github.com/FOCCms/go-microservices-course/platform/pkg/kafka"
 )
 
 // ConsumerLogging — middleware для логирования входящих сообщений
