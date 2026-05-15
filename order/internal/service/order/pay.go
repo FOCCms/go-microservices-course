@@ -10,7 +10,7 @@ import (
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 )
 
-func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
+func (s *Service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
 	var transactionUUID uuid.UUID
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
 		order, err := s.orderRepository.Get(ctx, id.String())

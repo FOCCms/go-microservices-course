@@ -20,5 +20,5 @@ func NewService(shipAssembledConsumer Consumer, orderService OrderService) *serv
 func (s *service) RunConsumer(ctx context.Context) error {
 	slog.InfoContext(ctx, "запуск потребителя ShipAssembled")
 
-	return s.shipAssembledConsumer.Consume(ctx, s.OrderPaidHandler)
+	return s.shipAssembledConsumer.Consume(ctx, s.ShipAssembledHandler)
 }

@@ -23,6 +23,7 @@ type InventoryClient interface {
 	ValidateCompatibility(ctx context.Context, slots model.ShipSlots) error
 	ReserveParts(ctx context.Context, uuids []uuid.UUID) error
 	ReleaseParts(ctx context.Context, uuids []uuid.UUID) error
+	CommitParts(ctx context.Context, uuids []uuid.UUID) error
 }
 
 type TxManager interface {

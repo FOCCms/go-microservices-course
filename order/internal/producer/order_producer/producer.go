@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/kafka"
 	eventsv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/events/v1"
-	"google.golang.org/protobuf/proto"
 )
 
 type service struct {
@@ -21,7 +22,6 @@ func NewService(orderPaidProducer KafkaProducer) *service {
 }
 
 func (s *service) ProduceOrderPaid(ctx context.Context, e model.OrderPaidEvent) error {
-
 	msg := &eventsv1.OrderPaid{
 		EventUuid: e.EventUUID.String(),
 		OrderUuid: e.OrderUUID.String(),

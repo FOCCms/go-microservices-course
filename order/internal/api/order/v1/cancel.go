@@ -18,7 +18,7 @@ func (a *api) CancelOrder(ctx context.Context, params orderv1.CancelOrderParams)
 				Message: err.Error(),
 			}, nil
 		}
-		if errors.Is(err, errs.ErrOrderAlreadyPaid) || errors.Is(err, errs.ErrOrderCancelled) {
+		if errors.Is(err, errs.ErrOrderAlreadyPaid) || errors.Is(err, errs.ErrOrderCancelled) || errors.Is(err, errs.ErrOrderStatusConflict) {
 			return &orderv1.CancelOrderConflict{
 				Code:    http.StatusConflict,
 				Message: err.Error(),

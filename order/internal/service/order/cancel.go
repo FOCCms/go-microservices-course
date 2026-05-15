@@ -10,7 +10,7 @@ import (
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 )
 
-func (s *service) Cancel(ctx context.Context, id uuid.UUID) error {
+func (s *Service) Cancel(ctx context.Context, id uuid.UUID) error {
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
 		order, err := s.orderRepository.Get(ctx, id.String())
 		if err != nil {

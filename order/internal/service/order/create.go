@@ -12,7 +12,7 @@ import (
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 )
 
-func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (model.Order, error) {
+func (s *Service) Create(ctx context.Context, req model.CreateOrderRequest) (model.Order, error) {
 	if req.HullUUID == uuid.Nil || req.EngineUUID == uuid.Nil {
 		return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrPartRequired)
 	}
@@ -80,7 +80,7 @@ func (s *service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 	return order, nil
 }
 
-func listParts(ctx context.Context, req model.CreateOrderRequest, s *service) ([]model.Part, error) {
+func listParts(ctx context.Context, req model.CreateOrderRequest, s *Service) ([]model.Part, error) {
 	parts, err := s.inventoryClient.ListParts(ctx, req.AssemblePartUUIDs())
 	if err != nil {
 		return nil, err

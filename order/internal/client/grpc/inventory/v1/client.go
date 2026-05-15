@@ -70,6 +70,13 @@ func (c *client) ReserveParts(ctx context.Context, uuids []uuid.UUID) error {
 		Uuids: uuidsStr,
 	})
 	if err != nil {
+		st, ok := status.FromError(err)
+		if !ok {
+			return err
+		}
+		if st.Code() == codes.ResourceExhausted {
+			return errs.ErrOutOfStock
+		}
 		return fmt.Errorf("зарезервировать детали: %w", err)
 	}
 	return nil
@@ -83,6 +90,18 @@ func (c *client) ReleaseParts(ctx context.Context, uuids []uuid.UUID) error {
 	})
 	if err != nil {
 		return fmt.Errorf("освободить детали: %w", err)
+	}
+	return nil
+}
+
+func (c *client) CommitParts(ctx context.Context, uuids []uuid.UUID) error {
+	uuidsStr := uuidsToStr(uuids)
+
+	_, err := c.inventoryClient.CommitParts(ctx, &inventoryv1.CommitPartsRequest{
+		Uuids: uuidsStr,
+	})
+	if err != nil {
+		return fmt.Errorf("списать детали: %w", err)
 	}
 	return nil
 }

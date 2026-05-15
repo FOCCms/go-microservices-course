@@ -6,7 +6,7 @@
 //
 //	HTTP Pay → orderProducer (Kafka topic order.paid)
 //	         → реальный AssemblyService (build_time_sec=0 для скорости)
-//	         → Kafka topic assembly.assembly-assembled
+//	         → Kafka topic assembly.ship-assembled
 //	         → order/internal/consumer/assembly_consumer
 //	         → CommitParts + UPDATE orders SET status=ASSEMBLED
 //
@@ -133,7 +133,7 @@ func runMain(m *testing.M) int {
 	// auto-create нельзя — нужно дождаться готовности
 	suffix := time.Now().UnixNano()
 	orderPaidTopic = fmt.Sprintf("e2e-%d-order.paid", suffix)
-	shipAssembledTopic = fmt.Sprintf("e2e-%d-assembly.assembly-assembled", suffix)
+	shipAssembledTopic = fmt.Sprintf("e2e-%d-assembly.ship-assembled", suffix)
 	assemblyGroupID = fmt.Sprintf("e2e-%d-assembly-service", suffix)
 	orderGroupID = fmt.Sprintf("e2e-%d-order-service", suffix)
 	createTopics(broker, orderPaidTopic, shipAssembledTopic)
@@ -327,7 +327,7 @@ func startOrderShipAssembledConsumer(
 	invClient inventoryv1.InventoryServiceClient,
 ) {
 	cg := mustNew(sarama.NewConsumerGroup([]string{broker}, orderGroupID, consumerConfig()))
-	cleanups.add("order assembly-assembled consumer group", func(_ context.Context) error { return cg.Close() })
+	cleanups.add("order ship-assembled consumer group", func(_ context.Context) error { return cg.Close() })
 
 	wrappedConsumer := wrappedKafkaConsumer.NewConsumer(cg, []string{shipAssembledTopic})
 
@@ -345,7 +345,7 @@ func startOrderShipAssembledConsumer(
 		if err := svc.RunConsumer(ctx); err != nil {
 			// При cancel ctx Consume вернёт ошибку — это нормально, не паникуем.
 			// Логируем для диагностики, если падение настоящее
-			_, _ = fmt.Fprintf(os.Stderr, "order assembly-assembled consumer stopped: %v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "order ship-assembled consumer stopped: %v\n", err)
 		}
 	}()
 }
