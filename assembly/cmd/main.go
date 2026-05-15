@@ -4,9 +4,10 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/joho/godotenv"
+
 	"github.com/FOCCms/go-microservices-course/assembly/internal/app"
 	"github.com/FOCCms/go-microservices-course/assembly/internal/config"
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -23,5 +24,4 @@ func main() {
 	if err := a.Run(); err != nil {
 		slog.Error("ошибка при работе приложения", "error", err)
 	}
-
 }

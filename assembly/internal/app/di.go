@@ -4,17 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/FOCCms/go-microservices-course/assembly/internal/config"
-	assemblySrv "github.com/FOCCms/go-microservices-course/assembly/internal/service/assembly"
+	"github.com/IBM/sarama"
 
+	"github.com/FOCCms/go-microservices-course/assembly/internal/config"
 	orderConsumer "github.com/FOCCms/go-microservices-course/assembly/internal/consumer/order_consumer"
 	assemblyProsucer "github.com/FOCCms/go-microservices-course/assembly/internal/producer/assembly_producer"
+	assemblySrv "github.com/FOCCms/go-microservices-course/assembly/internal/service/assembly"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
-	wrappedKafkaProducer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/producer"
-
 	wrappedKafkaConsumer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/consumer"
+	wrappedKafkaProducer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/producer"
 	kafkaMiddleware "github.com/FOCCms/go-microservices-course/platform/pkg/middleware/kafka"
-	"github.com/IBM/sarama"
 )
 
 type ConsumerService interface {

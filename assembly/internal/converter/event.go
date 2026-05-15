@@ -12,6 +12,6 @@ func ToShipAssembledEvent(e model.OrderPaidEvent, d time.Duration, t time.Time) 
 		OrderUUID:   e.OrderUUID,
 		UserUUID:    e.UserUUID,
 		BuildTime:   d,
-		AssembledAd: t,
+		AssembledAt: t,
 	}
 }

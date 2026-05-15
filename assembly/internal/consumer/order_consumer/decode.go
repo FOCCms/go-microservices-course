@@ -3,10 +3,11 @@ package order_consumer
 import (
 	"fmt"
 
-	"github.com/FOCCms/go-microservices-course/assembly/internal/model"
-	eventsv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/events/v1"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/FOCCms/go-microservices-course/assembly/internal/model"
+	eventsv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/events/v1"
 )
 
 func decodeOrderPaid(data []byte) (model.OrderPaidEvent, error) {

@@ -17,5 +17,5 @@ type ShipAssembledEvent struct {
 	OrderUUID   uuid.UUID
 	UserUUID    uuid.UUID
 	BuildTime   time.Duration
-	AssembledAd time.Time
+	AssembledAt time.Time
 }

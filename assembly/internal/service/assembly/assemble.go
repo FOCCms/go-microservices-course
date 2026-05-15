@@ -11,7 +11,6 @@ import (
 )
 
 func (s *service) Assemble(ctx context.Context, event model.OrderPaidEvent) error {
-
 	d := randomDuration(1, 3)
 
 	time.Sleep(d * time.Second)
@@ -30,5 +29,4 @@ func randomDuration(minSec, maxSec int) time.Duration {
 	}
 	// Генерируем случайное число в диапазоне [min, max]
 	return time.Duration(rand.Intn(maxSec-minSec+1) + minSec)
-
 }
