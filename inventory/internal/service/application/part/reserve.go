@@ -9,22 +9,29 @@ import (
 )
 
 func (s *service) Reserve(ctx context.Context, uuids []string) error {
-	parts, err := s.List(ctx, valueobject.PartFilter{
-		UUIDs: uuids,
+	err := s.txManager.Do(ctx, func(ctx context.Context) error {
+		parts, err := s.listForUpdate(ctx, valueobject.PartFilter{
+			UUIDs: uuids,
+		})
+		if err != nil {
+			return fmt.Errorf("зарезервировать детали: %w", err)
+		}
+
+		for i := range parts {
+			if err = parts[i].Reserve(); err != nil {
+				return fmt.Errorf("зарезервировать детали: %w", errs.ErrOutOfStock)
+			}
+		}
+
+		err = s.partRepository.UpdateReservationsBatch(ctx, parts)
+		if err != nil {
+			return fmt.Errorf("зарезервировать детали: %w", err)
+		}
+
+		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("зарезервировать детали: %w", err)
-	}
-
-	for i := range parts {
-		if err = parts[i].Reserve(); err != nil {
-			return fmt.Errorf("зарезервировать детали: %w", errs.ErrOutOfStock)
-		}
-	}
-
-	err = s.partRepository.UpdateReservationsBatch(ctx, parts)
-	if err != nil {
-		return fmt.Errorf("зарезервировать детали: %w", err)
+		return err
 	}
 
 	return nil

@@ -11,4 +11,5 @@ var (
 	ErrPartTypeMismatch  = errors.New("тип детали не соответствует слоту корабля")
 	ErrInvalidProperties = errors.New("некорректные свойства детали")
 	ErrPartIsNonUnique   = errors.New("повторяющиеся UUID в запросе")
+	ErrCommitParts       = errors.New("не все детали получилось списать")
 )

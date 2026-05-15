@@ -3,16 +3,22 @@ package part
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/jackc/pgx/v5"
 
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
+	model "github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/converter"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/repository/record"
 )
 
-func (r *repository) List(ctx context.Context, filter record.PartFilter) ([]model.Part, error) {
+func (r *repository) ListForUpdate(ctx context.Context, filter record.PartFilter) ([]model.Part, error) {
+	// сортировка перед for update
+	sort.Slice(filter.UUIDs, func(i, j int) bool {
+		return filter.UUIDs[i] < filter.UUIDs[j]
+	})
+
 	var rows pgx.Rows
 	var err error
 	if len(filter.UUIDs) > 0 {
@@ -22,6 +28,7 @@ func (r *repository) List(ctx context.Context, filter record.PartFilter) ([]mode
 		    JOIN unnest($1::uuid[]) WITH ORDINALITY AS input_uuids(uuid, order_num)
 		    ON p.uuid = input_uuids.uuid
 		    ORDER BY input_uuids.order_num
+			FOR UPDATE
 		`
 		rows, err = r.getter.DefaultTrOrDB(ctx, r.pool).Query(ctx, query, filter.UUIDs)
 	} else {
@@ -30,6 +37,7 @@ func (r *repository) List(ctx context.Context, filter record.PartFilter) ([]mode
 			FROM parts
 			WHERE $1 = 'UNSPECIFIED' OR part_type = $1
 			ORDER BY name ASC
+			FOR UPDATE
 		`
 		rows, err = r.getter.DefaultTrOrDB(ctx, r.pool).Query(ctx, query, filter.PartType)
 	}

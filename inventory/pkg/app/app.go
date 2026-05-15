@@ -1,6 +1,10 @@
 package app
 
 import (
+	"log/slog"
+
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 
@@ -15,7 +19,11 @@ import (
 func RegisterServices(grpcServer *grpc.Server, pool *pgxpool.Pool) {
 	repo := partRepository.NewRepository(pool)
 	checker := domain.NewCompatibilityChecker()
-	service := partService.NewService(repo, checker)
+	txManager, err := manager.New(trmpgx.NewDefaultFactory(pool))
+	if err != nil {
+		slog.Error("Ошибка инициализации RegisterServices для тестов", "error", err)
+	}
+	service := partService.NewService(repo, checker, txManager)
 	api := partV1API.NewAPI(service)
 	inventoryv1.RegisterInventoryServiceServer(grpcServer, api)
 }

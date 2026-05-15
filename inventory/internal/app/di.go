@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
+	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	partV1API "github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1"
@@ -16,7 +18,8 @@ import (
 )
 
 type diContainer struct {
-	pgPool *pgxpool.Pool
+	pgPool    *pgxpool.Pool
+	txManager partService.TxManager
 
 	inventoryRepo partService.PartRepository
 
@@ -51,6 +54,22 @@ func (d *diContainer) PGPool(ctx context.Context) (*pgxpool.Pool, error) {
 	return d.pgPool, nil
 }
 
+func (d *diContainer) TxManager(ctx context.Context) (partService.TxManager, error) {
+	if d.txManager == nil {
+		pool, err := d.PGPool(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать transaction manager: %w", err)
+		}
+		txManager, err := manager.New(trmpgx.NewDefaultFactory(pool))
+		if err != nil {
+			return nil, fmt.Errorf("создать transaction manager: %w", err)
+		}
+		d.txManager = txManager
+	}
+
+	return d.txManager, nil
+}
+
 func (d *diContainer) InventoryRepo(ctx context.Context) (partService.PartRepository, error) {
 	if d.inventoryRepo == nil {
 		pool, err := d.PGPool(ctx)
@@ -77,7 +96,12 @@ func (d *diContainer) InventoryService(ctx context.Context) (partV1API.PartServi
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать сервис: %w", err)
 		}
-		d.inventoryService = partService.NewService(repo, d.CompatibilityChecker())
+		txManager, err := d.TxManager(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать сервис: %w", err)
+		}
+
+		d.inventoryService = partService.NewService(repo, d.CompatibilityChecker(), txManager)
 	}
 
 	return d.inventoryService, nil

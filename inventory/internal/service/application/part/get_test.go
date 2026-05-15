@@ -66,9 +66,10 @@ func TestGet(t *testing.T) {
 
 			repo := mocks.NewPartRepository(t)
 			checker := domain.NewCompatibilityChecker()
+			txManager := mocks.NewTxManager(t)
 			tc.setupMock(repo)
 
-			svc := NewService(repo, checker)
+			svc := NewService(repo, checker, txManager)
 			res, err := svc.Get(ctx, tc.idStr)
 
 			if tc.err != nil {

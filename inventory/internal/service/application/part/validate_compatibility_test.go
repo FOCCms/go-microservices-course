@@ -92,9 +92,10 @@ func TestValidateCompatibility(t *testing.T) {
 
 			repo := mocks.NewPartRepository(t)
 			checker := mocks.NewCompatibilityChecker(t)
+			txManager := mocks.NewTxManager(t)
 			tc.setupMock(repo, checker)
 
-			svc := NewService(repo, checker)
+			svc := NewService(repo, checker, txManager)
 			err := svc.ValidateCompatibility(ctx, tc.slots)
 
 			if tc.wantErr != nil {

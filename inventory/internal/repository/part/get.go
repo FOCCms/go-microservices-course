@@ -18,7 +18,7 @@ func (r *repository) Get(ctx context.Context, id string) (model.Part, error) {
 
 	var p record.Part
 
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := r.getter.DefaultTrOrDB(ctx, r.pool).QueryRow(ctx, query, id).Scan(
 		&p.UUID, &p.Name, &p.Description, &p.PartType, &p.Price, &p.StockQuantity, &p.Properties, &p.Reserved, &p.CreatedAt,
 	)
 	if err != nil {

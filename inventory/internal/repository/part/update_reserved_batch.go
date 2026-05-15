@@ -22,7 +22,7 @@ func (r *repository) UpdateReservationsBatch(ctx context.Context, parts []model.
 		reservedVals[i] = p.Reserved()
 	}
 
-	_, err := r.pool.Exec(ctx, query, uuids, reservedVals)
+	_, err := r.getter.DefaultTrOrDB(ctx, r.pool).Exec(ctx, query, uuids, reservedVals)
 	if err != nil {
 		return err
 	}
