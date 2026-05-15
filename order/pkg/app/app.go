@@ -34,6 +34,19 @@ func NewHTTPHandler(pool *pgxpool.Pool, txManager orderService.TxManager, invent
 	return orderV1API.SetupServer(api)
 }
 
+func NewHTTPHandlerWithProducer(pool *pgxpool.Pool, txManager orderService.TxManager, inventoryClient inventoryv1.InventoryServiceClient, paymentClient paymentv1.PaymentServiceClient, producer orderService.OrderProducerService) (*orderv1.Server, error) {
+	orderRepo := orderRepository.NewRepository(pool, txManager)
+
+	pc := paymentV1Client.New(paymentClient)
+	ic := invetntoryV1Client.New(inventoryClient)
+
+	service := orderService.NewService(orderRepo, pc, ic, txManager, producer)
+
+	api := orderV1API.NewAPI(service)
+
+	return orderV1API.SetupServer(api)
+}
+
 func initProducer() orderService.OrderProducerService {
 	p, err := sarama.NewSyncProducer(
 		[]string{"localhost:9092"},

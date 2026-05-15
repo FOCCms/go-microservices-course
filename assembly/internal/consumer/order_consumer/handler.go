@@ -7,7 +7,7 @@ import (
 	"github.com/FOCCms/go-microservices-course/platform/pkg/kafka"
 )
 
-func (s *service) OrderPaidHandler(ctx context.Context, msg kafka.Message) error {
+func (s *Service) OrderPaidHandler(ctx context.Context, msg kafka.Message) error {
 	event, err := decodeOrderPaid(msg.Value)
 	if err != nil {
 		return fmt.Errorf("декодировать OrderPaid: %w", err)

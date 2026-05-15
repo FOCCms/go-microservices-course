@@ -47,6 +47,7 @@ import (
 	assemblyconsumer "github.com/FOCCms/go-microservices-course/order/internal/consumer/assembly_consumer"
 	orderProducer "github.com/FOCCms/go-microservices-course/order/internal/producer/order_producer"
 	orderRepoPkg "github.com/FOCCms/go-microservices-course/order/internal/repository/order"
+	orderSvc "github.com/FOCCms/go-microservices-course/order/internal/service/order"
 	"github.com/FOCCms/go-microservices-course/order/pkg/app"
 	payApp "github.com/FOCCms/go-microservices-course/payment/pkg/app"
 	wrappedKafkaConsumer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/consumer"
@@ -143,7 +144,7 @@ func runMain(m *testing.M) int {
 	cleanups.add("order sarama producer", func(_ context.Context) error { return syncProducer.Close() })
 
 	orderPaidKafkaProducer := wrappedKafkaProducer.NewProducer(syncProducer, orderPaidTopic)
-	realOrderProducer := orderProducer.New(orderPaidKafkaProducer)
+	realOrderProducer := orderProducer.NewService(orderPaidKafkaProducer)
 
 	// 7. Order HTTP-сервер с реальным продьюсером (НЕ noopProducer как в api_test)
 	handler := mustNew(app.NewHTTPHandlerWithProducer(orderPool, txManager, inventoryClient, paymentClient, realOrderProducer))
@@ -336,9 +337,7 @@ func startOrderShipAssembledConsumer(
 	// что использует прод-DI (order/internal/app/di.go)
 	svc := assemblyconsumer.NewService(
 		wrappedConsumer,
-		orderRepoPkg.New(pool, txManager),
-		inventoryClientPkg.New(invClient),
-		txManager,
+		orderSvc.NewService(orderRepoPkg.NewRepository(pool, txManager), nil, inventoryClientPkg.New(invClient), txManager, nil),
 	)
 
 	go func() {
