@@ -113,6 +113,11 @@ tasks:
       - echo '🔍 Проверяем .proto-файлы...'
       - '{{.BUF}} lint'
 
+  build:
+    desc: "Собирает все Go-модули (go build)"
+    cmds:
+      - go build ./order/... ./inventory/... ./payment/... ./assembly/... ./shared/... ./platform/...
+
   proto:gen:
     desc: "Генерирует Go-код из .proto"
     deps: [buf:install, proto:install-plugins]
