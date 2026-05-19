@@ -4,7 +4,7 @@ import "github.com/IBM/sarama"
 
 type shipAssembledConsumerConfig struct {
 	TopicName string `yaml:"topic" env:"SHIP_ASSEMBLED_TOPIC_NAME"        env-default:"ship.assembled"`
-	Group     string `yaml:"group" env:"SHIP_ASSEMBLED_CONSUMER_GROUP_ID" env-default:"2"`
+	Group     string `yaml:"group" env:"SHIP_ASSEMBLED_CONSUMER_GROUP_ID" env-default:"order-service"`
 }
 
 func (c *shipAssembledConsumerConfig) Topic() string {

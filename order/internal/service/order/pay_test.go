@@ -49,7 +49,7 @@ func TestPay(t *testing.T) {
 					Return(nil)
 
 				repo.EXPECT().
-					Get(ctx, orderID.String()).
+					GetForUpdate(ctx, orderID.String()).
 					Return(model.Order{UUID: orderID, Status: model.OrderStatusPendingPayment}, nil)
 
 				client.EXPECT().
@@ -83,7 +83,7 @@ func TestPay(t *testing.T) {
 					Return(errs.ErrOrderNotFound)
 
 				repo.EXPECT().
-					Get(ctx, orderID.String()).
+					GetForUpdate(ctx, orderID.String()).
 					Return(model.Order{UUID: orderID, Status: model.OrderStatusPendingPayment}, nil)
 
 				client.EXPECT().
@@ -107,7 +107,7 @@ func TestPay(t *testing.T) {
 					Return(errs.ErrOrderCancelled)
 
 				repo.EXPECT().
-					Get(ctx, orderID.String()).
+					GetForUpdate(ctx, orderID.String()).
 					Return(model.Order{UUID: orderID, Status: model.OrderStatusCancelled}, nil)
 			},
 			expected:    uuid.Nil,

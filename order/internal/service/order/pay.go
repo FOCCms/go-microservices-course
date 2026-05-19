@@ -13,7 +13,7 @@ import (
 func (s *Service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
 	var transactionUUID uuid.UUID
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
-		order, err := s.orderRepository.Get(ctx, id.String())
+		order, err := s.orderRepository.GetForUpdate(ctx, id.String())
 		if err != nil {
 			return fmt.Errorf("оплатить заказ: %w", err)
 		}

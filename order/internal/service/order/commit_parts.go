@@ -10,13 +10,16 @@ import (
 
 func (s *Service) CommitParts(ctx context.Context, event model.ShipAssembledEvent) error {
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
-		order, err := s.orderRepository.Get(ctx, event.OrderUUID.String())
+		order, err := s.orderRepository.GetForUpdate(ctx, event.OrderUUID.String())
 		if err != nil {
 			return fmt.Errorf("списать детали: %w", err)
 		}
 
+		if order.Status == model.OrderStatusAssembled {
+			return nil
+		}
 		if err = checkCommitStatus(order.Status); err != nil {
-			return err
+			return fmt.Errorf("списать детали: %w", err)
 		}
 
 		err = s.inventoryClient.CommitParts(ctx, order.AssemblePartUUIDs())
@@ -42,13 +45,10 @@ func (s *Service) CommitParts(ctx context.Context, event model.ShipAssembledEven
 
 func checkCommitStatus(status model.OrderStatus) error {
 	if status != model.OrderStatusPaid {
-		if status == model.OrderStatusAssembled {
-			return fmt.Errorf("списать детали: %w", errs.ErrOrderAssembled)
-		}
 		if status == model.OrderStatusCancelled {
-			return fmt.Errorf("списать детали: %w", errs.ErrOrderCancelled)
+			return errs.ErrOrderCancelled
 		}
-		return fmt.Errorf("списать детали: %w", errs.ErrOrderStatusConflict)
+		return errs.ErrOrderStatusConflict
 	}
 	return nil
 }

@@ -19,6 +19,20 @@ func (r *repository) Get(ctx context.Context, orderUUID string) (model.Order, er
 		FROM orders
 		WHERE uuid = $1
 	`
+	return r.get(ctx, query, orderUUID)
+}
+
+func (r *repository) GetForUpdate(ctx context.Context, orderUUID string) (model.Order, error) {
+	const query = `
+		SELECT uuid, total_price, status, transaction_uuid, payment_method, created_at, updated_at, user_uuid 
+		FROM orders
+		WHERE uuid = $1
+		FOR UPDATE
+	`
+	return r.get(ctx, query, orderUUID)
+}
+
+func (r *repository) get(ctx context.Context, query, orderUUID string) (model.Order, error) {
 	rows, err := r.getter.DefaultTrOrDB(ctx, r.pool).Query(ctx, query, orderUUID)
 	if err != nil {
 		return model.Order{}, fmt.Errorf("считать заказ: %w", err)

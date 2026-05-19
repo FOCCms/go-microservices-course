@@ -15,16 +15,19 @@ import (
 	"github.com/FOCCms/go-microservices-course/order/internal/service/order/mocks"
 )
 
-func TestCancel(t *testing.T) {
+func TestCommitParts(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
-		id string
+		event model.ShipAssembledEvent
 	}
 
 	var (
 		ctx     = context.Background()
 		orderID = gofakeit.UUID()
+		event   = model.ShipAssembledEvent{
+			OrderUUID: uuid.MustParse(orderID),
+		}
 	)
 
 	tests := []struct {
@@ -34,8 +37,8 @@ func TestCancel(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			name: "успешная отмена заказа",
-			args: args{id: orderID},
+			name: "успешное списание деталей (заказ переходит в ASSEMBLED)",
+			args: args{event: event},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
@@ -45,39 +48,39 @@ func TestCancel(t *testing.T) {
 
 				repo.EXPECT().
 					GetForUpdate(ctx, orderID).
-					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPendingPayment}, nil)
+					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPaid}, nil)
 
 				client.EXPECT().
-					ReleaseParts(ctx, mock.Anything).
+					CommitParts(ctx, mock.Anything).
 					Return(nil)
 
 				repo.EXPECT().
 					Update(ctx, mock.MatchedBy(func(o model.Order) bool {
-						return o.Status == model.OrderStatusCancelled
+						return o.Status == model.OrderStatusAssembled
 					})).
 					Return(nil)
 			},
 			expectedErr: nil,
 		},
 		{
-			name: "ошибка: заказ уже оплачен",
-			args: args{id: orderID},
+			name: "идемпотентность: заказ уже ASSEMBLED, ничего не делаем",
+			args: args{event: event},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
-					Return(errs.ErrOrderAlreadyPaid)
+					Return(nil)
 
 				repo.EXPECT().
 					GetForUpdate(ctx, orderID).
-					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPaid}, nil)
+					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusAssembled}, nil)
 			},
-			expectedErr: errs.ErrOrderAlreadyPaid,
+			expectedErr: nil,
 		},
 		{
-			name: "ошибка: заказ уже отменен",
-			args: args{id: orderID},
+			name: "ошибка: заказ отменен (конфликт статуса)",
+			args: args{event: event},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
@@ -92,8 +95,8 @@ func TestCancel(t *testing.T) {
 			expectedErr: errs.ErrOrderCancelled,
 		},
 		{
-			name: "ошибка: заказ не найден",
-			args: args{id: orderID},
+			name: "ошибка: заказ не найден в репозитории",
+			args: args{event: event},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
@@ -122,7 +125,7 @@ func TestCancel(t *testing.T) {
 			tc.setupMock(orderRepo, inventoryClient, txManager, producer)
 
 			svc := NewService(orderRepo, paymentClient, inventoryClient, txManager, producer)
-			err := svc.Cancel(ctx, uuid.MustParse(tc.args.id))
+			err := svc.CommitParts(ctx, tc.args.event)
 
 			if tc.expectedErr != nil {
 				require.Error(t, err)

@@ -12,7 +12,7 @@ import (
 
 func (s *Service) Cancel(ctx context.Context, id uuid.UUID) error {
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
-		order, err := s.orderRepository.Get(ctx, id.String())
+		order, err := s.orderRepository.GetForUpdate(ctx, id.String())
 		if err != nil {
 			return fmt.Errorf("отменить заказ: %w", err)
 		}
