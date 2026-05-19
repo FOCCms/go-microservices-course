@@ -4,7 +4,7 @@ import "github.com/IBM/sarama"
 
 type orderPaidConsumerConfig struct {
 	TopicName string `yaml:"topic" env:"ORDER_PAID_TOPIC_NAME"        env-default:"order.paid"`
-	Group     string `yaml:"group" env:"ORDER_PAID_CONSUMER_GROUP_ID" env-default:"1"`
+	Group     string `yaml:"group" env:"ORDER_PAID_CONSUMER_GROUP_ID" env-default:"assembly-service"`
 }
 
 func (c *orderPaidConsumerConfig) Topic() string {

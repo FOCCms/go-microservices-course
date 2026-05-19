@@ -20,7 +20,7 @@ func (r *repository) Commit(ctx context.Context, uuids []string) error {
 	if err != nil {
 		return fmt.Errorf("обновить строки при списании деталей: %w", err)
 	}
-	if tag.RowsAffected() == 0 {
+	if int(tag.RowsAffected()) < len(uuids) {
 		return fmt.Errorf("обновить строки при списании деталей: %w", errs.ErrCommitParts)
 	}
 

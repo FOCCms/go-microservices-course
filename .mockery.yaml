@@ -47,3 +47,8 @@ packages:
   github.com/FOCCms/go-microservices-course/payment/internal/api/payment/v1:
     config:
       include-interface-regex: ".*Service"
+
+  # Payment service
+  github.com/FOCCms/go-microservices-course/assembly/internal/service/assembly:
+    config:
+      include-interface-regex: ".*Service"

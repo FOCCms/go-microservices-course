@@ -4,7 +4,7 @@ kafka:
 
 order_paid_consumer:
   topic: "order.paid"
-  group: "1"
+  group: "assembly-service"
 
 ship_assembled_producer:
   topic: "ship.assembled"

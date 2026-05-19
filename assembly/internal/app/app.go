@@ -21,10 +21,7 @@ type App struct {
 
 func New(ctx context.Context) *App {
 	a := &App{}
-	err := a.initDeps(ctx)
-	if err != nil {
-		closeAll()
-	}
+	a.initDeps(ctx)
 	return a
 }
 
@@ -44,9 +41,8 @@ func (a *App) Run() error {
 	return nil
 }
 
-func (a *App) initDeps(ctx context.Context) error {
+func (a *App) initDeps(ctx context.Context) {
 	a.initDI(ctx)
-	return nil
 }
 
 func (a *App) initDI(_ context.Context) {

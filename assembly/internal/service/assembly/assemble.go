@@ -3,7 +3,7 @@ package assembly
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/FOCCms/go-microservices-course/assembly/internal/converter"
@@ -11,9 +11,13 @@ import (
 )
 
 func (s *service) Assemble(ctx context.Context, event model.OrderPaidEvent) error {
-	d := randomDuration(1, 3)
+	d := randomDurationSec(1, 3)
 
-	time.Sleep(d * time.Second)
+	select {
+	case <-time.After(d):
+	case <-ctx.Done():
+		return fmt.Errorf("сборка корабля прервана: %w", ctx.Err())
+	}
 
 	err := s.assemblyProducerService.ProduceShipAssembled(ctx, converter.ToShipAssembledEvent(event, d, time.Now()))
 	if err != nil {
@@ -23,10 +27,12 @@ func (s *service) Assemble(ctx context.Context, event model.OrderPaidEvent) erro
 	return nil
 }
 
-func randomDuration(minSec, maxSec int) time.Duration {
+func randomDurationSec(minSec, maxSec int) time.Duration {
 	if minSec >= maxSec {
-		return time.Duration(minSec)
+		return time.Duration(minSec) * time.Second
 	}
-	// Генерируем случайное число в диапазоне [min, max]
-	return time.Duration(rand.Intn(maxSec-minSec+1) + minSec)
+	//nolint:gosec // math/rand/v2 используется осознанно для имитации задержки сборки, криптографическая стойкость не требуется.
+	val := rand.IntN(maxSec-minSec+1) + minSec
+
+	return time.Duration(val) * time.Second
 }
