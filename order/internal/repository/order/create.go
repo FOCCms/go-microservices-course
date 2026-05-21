@@ -26,8 +26,8 @@ func (r *repository) Create(ctx context.Context, order model.Order, items []mode
 
 func (r *repository) createOrder(ctx context.Context, order model.Order) error {
 	o := converter.ModelOrderToRecordOrder(order)
-	const query = `INSERT INTO orders (uuid, total_price, status, created_at) VALUES ($1, $2, $3, $4)`
-	_, err := r.getter.DefaultTrOrDB(ctx, r.pool).Exec(ctx, query, o.UUID, o.TotalPrice, o.Status, o.CreatedAt)
+	const query = `INSERT INTO orders (uuid, total_price, status, created_at, user_uuid) VALUES ($1, $2, $3, $4, $5)`
+	_, err := r.getter.DefaultTrOrDB(ctx, r.pool).Exec(ctx, query, o.UUID, o.TotalPrice, o.Status, o.CreatedAt, o.UserUUID)
 	if err != nil {
 		return fmt.Errorf("создать заказ: %w", err)
 	}

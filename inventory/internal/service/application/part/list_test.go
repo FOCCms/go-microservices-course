@@ -79,10 +79,11 @@ func TestList(t *testing.T) {
 			t.Parallel()
 
 			repo := mocks.NewPartRepository(t)
+			txManager := mocks.NewTxManager(t)
 
 			tc.setupMock(repo)
 
-			svc := NewService(repo, domain.NewCompatibilityChecker())
+			svc := NewService(repo, domain.NewCompatibilityChecker(), txManager)
 			res, err := svc.List(ctx, tc.filter)
 
 			if tc.wantErr != nil {

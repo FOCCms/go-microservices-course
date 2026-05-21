@@ -7,7 +7,13 @@ required:
   - total_price
   - status
   - created_at
+  - user_uuid
 properties:
+  user_uuid:
+    type: string
+    format: uuid
+    description: UUID пользователя (обязательный, v4)
+    example: "550e8400-e29b-41d4-a716-446655440000"
   order_uuid:
     type: string
     format: uuid

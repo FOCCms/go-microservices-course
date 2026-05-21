@@ -1,4 +1,4 @@
-name: CI
+name: "CI"
 
 on:
   push:
@@ -6,76 +6,31 @@ on:
   pull_request:
     branches: [master]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  build:
+    name: "Build"
+    uses: ./.github/workflows/build.yml
+
   lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    name: "Lint"
+    needs: build
+    uses: ./.github/workflows/lint.yml
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.26"
-          cache: true
+  test-api:
+    name: "Test API"
+    needs: build
+    uses: ./.github/workflows/test-api.yml
 
-      - name: Create go.work
-        run: go work init ./order ./inventory ./payment ./shared
+  test-unit:
+    name: "Test Unit"
+    needs: build
+    uses: ./.github/workflows/test-unit.yml
 
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Запускаем проверки
-      - name: Format Check
-        run: task format
-
-      - name: Lint
-        run: task lint
-
-  test:
-    name: Test and Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.26"
-          cache: true
-
-      - name: Create go.work
-        run: go work init ./order ./inventory ./payment ./shared
-
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: API Tests
-        run: task test:api
-
-      - name: Unit Tests
-        run: task test
-
-      - name: Coverage Check
-        run: |
-          task test:coverage
-          # Извлекаем число и сохраняем в ENV
-          echo "TOTAL_COVERAGE=$(go tool cover -func=./coverage/coverage.out | tail -n1 | awk '{print $NF}' | tr -d '%')" >> $GITHUB_ENV
-
-      - name: Update Coverage Badge
-        uses: schneegans/dynamic-badges-action@v1.7.0
-        with:
-          auth: ${{ secrets.GIST_TOKEN }}
-          gistID: f5bb77f26d495e7a6d229e6ce5aa2cc6
-          filename: coverage.json
-          label: coverage
-          message: ${{ env.TOTAL_COVERAGE }}%
-          valColorRange: ${{ env.TOTAL_COVERAGE }}
-          maxColorRange: 100
-          minColorRange: 0
+  test-e2e:
+    name: "Test E2E"
+    needs: build
+    uses: ./.github/workflows/test-e2e.yml

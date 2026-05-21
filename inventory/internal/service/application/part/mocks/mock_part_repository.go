@@ -42,6 +42,63 @@ func (_m *PartRepository) EXPECT() *PartRepository_Expecter {
 	return &PartRepository_Expecter{mock: &_m.Mock}
 }
 
+// Commit provides a mock function for the type PartRepository
+func (_mock *PartRepository) Commit(ctx context.Context, uuids []string) error {
+	ret := _mock.Called(ctx, uuids)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Commit")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) error); ok {
+		r0 = returnFunc(ctx, uuids)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// PartRepository_Commit_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Commit'
+type PartRepository_Commit_Call struct {
+	*mock.Call
+}
+
+// Commit is a helper method to define mock.On call
+//   - ctx context.Context
+//   - uuids []string
+func (_e *PartRepository_Expecter) Commit(ctx interface{}, uuids interface{}) *PartRepository_Commit_Call {
+	return &PartRepository_Commit_Call{Call: _e.mock.On("Commit", ctx, uuids)}
+}
+
+func (_c *PartRepository_Commit_Call) Run(run func(ctx context.Context, uuids []string)) *PartRepository_Commit_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []string
+		if args[1] != nil {
+			arg1 = args[1].([]string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *PartRepository_Commit_Call) Return(err error) *PartRepository_Commit_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *PartRepository_Commit_Call) RunAndReturn(run func(ctx context.Context, uuids []string) error) *PartRepository_Commit_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Get provides a mock function for the type PartRepository
 func (_mock *PartRepository) Get(ctx context.Context, id string) (model.Part, error) {
 	ret := _mock.Called(ctx, id)
@@ -172,6 +229,74 @@ func (_c *PartRepository_List_Call) Return(parts []model.Part, err error) *PartR
 }
 
 func (_c *PartRepository_List_Call) RunAndReturn(run func(ctx context.Context, filter record.PartFilter) ([]model.Part, error)) *PartRepository_List_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListForUpdate provides a mock function for the type PartRepository
+func (_mock *PartRepository) ListForUpdate(ctx context.Context, filter record.PartFilter) ([]model.Part, error) {
+	ret := _mock.Called(ctx, filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListForUpdate")
+	}
+
+	var r0 []model.Part
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, record.PartFilter) ([]model.Part, error)); ok {
+		return returnFunc(ctx, filter)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, record.PartFilter) []model.Part); ok {
+		r0 = returnFunc(ctx, filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.Part)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, record.PartFilter) error); ok {
+		r1 = returnFunc(ctx, filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// PartRepository_ListForUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListForUpdate'
+type PartRepository_ListForUpdate_Call struct {
+	*mock.Call
+}
+
+// ListForUpdate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - filter record.PartFilter
+func (_e *PartRepository_Expecter) ListForUpdate(ctx interface{}, filter interface{}) *PartRepository_ListForUpdate_Call {
+	return &PartRepository_ListForUpdate_Call{Call: _e.mock.On("ListForUpdate", ctx, filter)}
+}
+
+func (_c *PartRepository_ListForUpdate_Call) Run(run func(ctx context.Context, filter record.PartFilter)) *PartRepository_ListForUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 record.PartFilter
+		if args[1] != nil {
+			arg1 = args[1].(record.PartFilter)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *PartRepository_ListForUpdate_Call) Return(parts []model.Part, err error) *PartRepository_ListForUpdate_Call {
+	_c.Call.Return(parts, err)
+	return _c
+}
+
+func (_c *PartRepository_ListForUpdate_Call) RunAndReturn(run func(ctx context.Context, filter record.PartFilter) ([]model.Part, error)) *PartRepository_ListForUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }

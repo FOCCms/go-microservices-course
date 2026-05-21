@@ -15,6 +15,7 @@ func OrderToModel(order record.Order, orderItems []record.OrderItem) model.Order
 		PaymentMethod:   toModelPaymentMethod(order.PaymentMethod),
 		Status:          model.OrderStatus(order.Status),
 		CreatedAt:       order.CreatedAt,
+		UserUUID:        uuid.MustParse(order.UserUUID),
 	}
 
 	for _, item := range orderItems {
@@ -55,6 +56,7 @@ func ModelOrderToRecordOrder(order model.Order) record.Order {
 		PaymentMethod:   toRecordPaymentMethod(order.PaymentMethod),
 		Status:          string(order.Status),
 		CreatedAt:       order.CreatedAt,
+		UserUUID:        order.UserUUID.String(),
 	}
 }
 

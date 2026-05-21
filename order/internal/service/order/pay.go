@@ -10,10 +10,10 @@ import (
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 )
 
-func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
+func (s *Service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
 	var transactionUUID uuid.UUID
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
-		order, err := s.orderRepository.Get(ctx, id.String())
+		order, err := s.orderRepository.GetForUpdate(ctx, id.String())
 		if err != nil {
 			return fmt.Errorf("оплатить заказ: %w", err)
 		}
@@ -35,6 +35,16 @@ func (s *service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMet
 		if err != nil {
 			return fmt.Errorf("оплатить заказ: %w", err)
 		}
+
+		err = s.orderProducerService.ProduceOrderPaid(ctx, model.OrderPaidEvent{
+			EventUUID: uuid.New(),
+			OrderUUID: order.UUID,
+			UserUUID:  order.UserUUID,
+		})
+		if err != nil {
+			return fmt.Errorf("оплатить заказ: %w", err)
+		}
+
 		return nil
 	})
 

@@ -38,6 +38,12 @@ func (a *api) CreateOrder(ctx context.Context, req *orderv1.CreateOrderRequest) 
 				Message: err.Error(),
 			}, nil
 		}
+		if errors.Is(err, errs.ErrIncompatibleParts) {
+			return &orderv1.CreateOrderConflict{
+				Code:    http.StatusConflict,
+				Message: err.Error(),
+			}, nil
+		}
 		return &orderv1.CreateOrderInternalServerError{
 			Code:    http.StatusInternalServerError,
 			Message: "ошибка создания заказа",

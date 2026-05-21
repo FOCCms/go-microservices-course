@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/IBM/sarama"
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,22 +16,44 @@ import (
 	invetntoryV1Client "github.com/FOCCms/go-microservices-course/order/internal/client/grpc/inventory/v1"
 	paymentV1Client "github.com/FOCCms/go-microservices-course/order/internal/client/grpc/payment/v1"
 	"github.com/FOCCms/go-microservices-course/order/internal/config"
+	assemblyConsumer "github.com/FOCCms/go-microservices-course/order/internal/consumer/assembly_consumer"
+	orderProducer "github.com/FOCCms/go-microservices-course/order/internal/producer/order_producer"
 	orderRepository "github.com/FOCCms/go-microservices-course/order/internal/repository/order"
 	orderSrv "github.com/FOCCms/go-microservices-course/order/internal/service/order"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
+	wrappedKafkaConsumer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/consumer"
+	wrappedKafkaProducer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/producer"
+	kafkaMiddleware "github.com/FOCCms/go-microservices-course/platform/pkg/middleware/kafka"
 	orderv1 "github.com/FOCCms/go-microservices-course/shared/pkg/openapi/order/v1"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 )
 
 type diContainer struct {
-	pgPool          *pgxpool.Pool
-	txManager       orderSrv.TxManager
-	orderRepo       orderSrv.OrderRepository
+	pgPool    *pgxpool.Pool
+	txManager orderSrv.TxManager
+
+	orderRepo orderSrv.OrderRepository
+
 	inventoryClient orderSrv.InventoryClient
 	paymentClient   orderSrv.PaymentClient
-	orderService    orderV1API.OrderService
-	orderV1Handler  *orderv1.Server
+
+	orderService *orderSrv.Service
+
+	orderV1Handler *orderv1.Server
+
+	syncProducer  sarama.SyncProducer
+	consumerGroup sarama.ConsumerGroup
+
+	orderPaidProducer     *wrappedKafkaProducer.Producer
+	shipAssembledConsumer *wrappedKafkaConsumer.Consumer
+
+	orderProducerService    orderSrv.OrderProducerService
+	assemblyConsumerService ConsumerService
+}
+
+type ConsumerService interface {
+	RunConsumer(ctx context.Context) error
 }
 
 func (d *diContainer) PGPool(ctx context.Context) (*pgxpool.Pool, error) {
@@ -133,7 +156,48 @@ func (d *diContainer) InventoryClient(_ context.Context) (orderSrv.InventoryClie
 	return d.inventoryClient, nil
 }
 
-func (d *diContainer) OrderService(ctx context.Context) (orderV1API.OrderService, error) {
+func (d *diContainer) SyncProducer() (sarama.SyncProducer, error) {
+	if d.syncProducer == nil {
+		p, err := sarama.NewSyncProducer(
+			config.AppConfig().Kafka.Brokers,
+			config.AppConfig().OrderPaidProducer.SaramaConfig(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать SyncProducer: %w", err)
+		}
+
+		closer.Add("Kafka sync producer", func(_ context.Context) error {
+			return p.Close()
+		})
+		d.syncProducer = p
+	}
+
+	return d.syncProducer, nil
+}
+
+func (d *diContainer) OrderPaidProducer() (*wrappedKafkaProducer.Producer, error) {
+	if d.orderPaidProducer == nil {
+		p, err := d.SyncProducer()
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать OrderPaidProducer: %w", err)
+		}
+		d.orderPaidProducer = wrappedKafkaProducer.NewProducer(p, config.AppConfig().OrderPaidProducer.TopicName)
+	}
+	return d.orderPaidProducer, nil
+}
+
+func (d *diContainer) OrderProducerService() (orderSrv.OrderProducerService, error) {
+	if d.orderProducerService == nil {
+		p, err := d.OrderPaidProducer()
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать OrderProducerService: %w", err)
+		}
+		d.orderProducerService = orderProducer.NewService(p)
+	}
+	return d.orderProducerService, nil
+}
+
+func (d *diContainer) OrderService(ctx context.Context) (*orderSrv.Service, error) {
 	if d.orderService == nil {
 		repo, err := d.OrderRepo(ctx)
 		if err != nil {
@@ -151,8 +215,12 @@ func (d *diContainer) OrderService(ctx context.Context) (orderV1API.OrderService
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать сервис: %w", err)
 		}
+		orderProducerService, err := d.OrderProducerService()
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать сервис: %w", err)
+		}
 
-		orderSrv.NewService(repo, paymentClient, inventoryClient, txManager)
+		d.orderService = orderSrv.NewService(repo, paymentClient, inventoryClient, txManager, orderProducerService)
 	}
 	return d.orderService, nil
 }
@@ -170,4 +238,61 @@ func (d *diContainer) OrderV1API(ctx context.Context) (*orderv1.Server, error) {
 		}
 	}
 	return d.orderV1Handler, nil
+}
+
+func (d *diContainer) ConsumerGroup() (sarama.ConsumerGroup, error) {
+	if d.consumerGroup == nil {
+		consumerGroup, err := sarama.NewConsumerGroup(
+			config.AppConfig().Kafka.Brokers,
+			config.AppConfig().ShipAssembledConsumer.GroupID(),
+			config.AppConfig().ShipAssembledConsumer.SaramaConfig(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("создать consumer group: %w", err)
+		}
+
+		closer.Add("Kafka consumer group", func(_ context.Context) error {
+			return consumerGroup.Close()
+		})
+
+		d.consumerGroup = consumerGroup
+	}
+
+	return d.consumerGroup, nil
+}
+
+func (d *diContainer) ShipAssembledConsumer() (assemblyConsumer.Consumer, error) {
+	if d.shipAssembledConsumer == nil {
+		group, err := d.ConsumerGroup()
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать ShipAssembledConsumer: %w", err)
+		}
+		d.shipAssembledConsumer = wrappedKafkaConsumer.NewConsumer(
+			group,
+			[]string{
+				config.AppConfig().ShipAssembledConsumer.Topic(),
+			},
+			wrappedKafkaConsumer.WithMiddlewares(
+				kafkaMiddleware.ConsumerLogging(),
+			),
+		)
+	}
+
+	return d.shipAssembledConsumer, nil
+}
+
+func (d *diContainer) AssemblyConsumerService(ctx context.Context) (ConsumerService, error) {
+	if d.assemblyConsumerService == nil {
+		shipAssembledConsumer, err := d.ShipAssembledConsumer()
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать AssemblyConsumerService: %w", err)
+		}
+		orderService, err := d.OrderService(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать AssemblyConsumerService: %w", err)
+		}
+		d.assemblyConsumerService = assemblyConsumer.NewService(shipAssembledConsumer, orderService)
+	}
+
+	return d.assemblyConsumerService, nil
 }

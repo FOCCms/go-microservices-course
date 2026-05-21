@@ -31,3 +31,23 @@ func (s *service) List(ctx context.Context, filter valueobject.PartFilter) ([]mo
 
 	return parts, nil
 }
+
+func (s *service) listForUpdate(ctx context.Context, filter valueobject.PartFilter) ([]model.Part, error) {
+	// Валидируем параметры фильтра.
+	for _, id := range filter.UUIDs {
+		if err := uuid.Validate(id); err != nil {
+			return []model.Part{}, fmt.Errorf("получить детали: %w", errs.ErrInvalidUUID)
+		}
+	}
+
+	// Получаем список деталей.
+	parts, err := s.partRepository.ListForUpdate(ctx, record.PartFilter{
+		UUIDs:    filter.UUIDs,
+		PartType: string(filter.PartType),
+	})
+	if err != nil {
+		return []model.Part{}, fmt.Errorf("получить детали: %w", err)
+	}
+
+	return parts, nil
+}

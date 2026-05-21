@@ -17,6 +17,7 @@ type Order struct {
 	PaymentMethod   *PaymentMethod
 	Status          OrderStatus
 	CreatedAt       time.Time
+	UserUUID        uuid.UUID
 }
 
 func (o *Order) AssemblePartUUIDs() []uuid.UUID {
@@ -36,6 +37,7 @@ const (
 	OrderStatusPendingPayment OrderStatus = "PENDING_PAYMENT"
 	OrderStatusPaid           OrderStatus = "PAID"
 	OrderStatusCancelled      OrderStatus = "CANCELLED"
+	OrderStatusAssembled      OrderStatus = "ASSEMBLED"
 )
 
 type CreateOrderRequest struct {
@@ -43,6 +45,7 @@ type CreateOrderRequest struct {
 	EngineUUID uuid.UUID
 	ShieldUUID *uuid.UUID
 	WeaponUUID *uuid.UUID
+	UserUUID   uuid.UUID
 }
 
 func (r *CreateOrderRequest) AssemblePartUUIDs() []uuid.UUID {

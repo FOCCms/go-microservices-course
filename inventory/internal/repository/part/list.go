@@ -23,7 +23,7 @@ func (r *repository) List(ctx context.Context, filter record.PartFilter) ([]mode
 		    ON p.uuid = input_uuids.uuid
 		    ORDER BY input_uuids.order_num
 		`
-		rows, err = r.pool.Query(ctx, query, filter.UUIDs)
+		rows, err = r.getter.DefaultTrOrDB(ctx, r.pool).Query(ctx, query, filter.UUIDs)
 	} else {
 		const query = `
 			SELECT uuid, name, description, part_type, price, stock_quantity, properties, reserved, created_at
@@ -31,7 +31,7 @@ func (r *repository) List(ctx context.Context, filter record.PartFilter) ([]mode
 			WHERE $1 = 'UNSPECIFIED' OR part_type = $1
 			ORDER BY name ASC
 		`
-		rows, err = r.pool.Query(ctx, query, filter.PartType)
+		rows, err = r.getter.DefaultTrOrDB(ctx, r.pool).Query(ctx, query, filter.PartType)
 	}
 
 	if err != nil {

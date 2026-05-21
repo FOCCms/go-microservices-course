@@ -48,6 +48,7 @@ func TestCreate(t *testing.T) {
 		repo *mocks.OrderRepository,
 		client *mocks.InventoryClient,
 		tx *mocks.TxManager,
+		producer *mocks.OrderProducerService,
 	)
 
 	tests := []struct {
@@ -64,7 +65,7 @@ func TestCreate(t *testing.T) {
 					EngineUUID: uuid.MustParse(engineUUID),
 				},
 			},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
@@ -97,7 +98,7 @@ func TestCreate(t *testing.T) {
 					EngineUUID: uuid.MustParse(engineUUID),
 				},
 			},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
@@ -118,7 +119,7 @@ func TestCreate(t *testing.T) {
 					EngineUUID: uuid.MustParse(engineUUID),
 				},
 			},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
@@ -145,9 +146,11 @@ func TestCreate(t *testing.T) {
 			inventoryClient := mocks.NewInventoryClient(t)
 			paymentClient := mocks.NewPaymentClient(t)
 			txManager := mocks.NewTxManager(t)
-			tc.setupMock(orderRepo, inventoryClient, txManager)
+			producer := mocks.NewOrderProducerService(t)
 
-			svc := NewService(orderRepo, paymentClient, inventoryClient, txManager)
+			tc.setupMock(orderRepo, inventoryClient, txManager, producer)
+
+			svc := NewService(orderRepo, paymentClient, inventoryClient, txManager, producer)
 			order, err := svc.Create(ctx, tc.args.req)
 
 			if tc.expected.err != nil {

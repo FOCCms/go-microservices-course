@@ -1,0 +1,10 @@
+kafka:
+  brokers:
+    - "localhost:9092"
+
+order_paid_consumer:
+  topic: "order.paid"
+  group: "assembly-service"
+
+ship_assembled_producer:
+  topic: "ship.assembled"

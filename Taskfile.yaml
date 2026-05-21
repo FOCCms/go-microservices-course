@@ -19,7 +19,7 @@ vars:
   PROTOC_GEN_GO_GRPC: '{{.BIN_DIR}}/protoc-gen-go-grpc'
   OGEN: '{{.BIN_DIR}}/ogen'
 
-  MODULES: order inventory payment shared
+  MODULES: order inventory payment shared assembly
 
   MOCKERY_VERSION: 'v3.7.0'
   MOCKERY: '{{.BIN_DIR}}/mockery'
@@ -103,7 +103,7 @@ tasks:
     desc: "Запускает golangci-lint"
     deps: [golangci-lint:install]
     cmds:
-      - '{{.GOLANGCI_LINT}} run --allow-parallel-runners order/... inventory/... payment/... shared/... --config=.golangci.yml'
+      - '{{.GOLANGCI_LINT}} run --allow-parallel-runners order/... inventory/... payment/... shared/... assembly/... --config=.golangci.yml'
 
   proto:lint:
     desc: "Проверяет .proto-файлы линтером"
@@ -112,6 +112,11 @@ tasks:
     cmds:
       - echo '🔍 Проверяем .proto-файлы...'
       - '{{.BUF}} lint'
+
+  build:
+    desc: "Собирает все Go-модули (go build)"
+    cmds:
+      - go build ./order/... ./inventory/... ./payment/... ./assembly/... ./shared/... ./platform/...
 
   proto:gen:
     desc: "Генерирует Go-код из .proto"
@@ -166,7 +171,7 @@ tasks:
   test:
     desc: "Запускает unit-тесты с race-детектором"
     cmds:
-      - for mod in order inventory payment; do echo "=== $mod ===" && (cd "$mod" && go test -v -race -count=1 ./...); done
+      - for mod in order inventory payment assembly; do echo "=== $mod ===" && (cd "$mod" && go test -v -race -count=1 ./...); done
 
   coverage:clean:
     desc: "Очищает директорию с отчётами покрытия"
@@ -181,7 +186,7 @@ tasks:
     vars:
       TARGET_PACKAGES:
         sh: |
-          for mod in order inventory payment; do
+          for mod in order inventory payment assembly; do
             (cd "$mod" && go list ./internal/... | grep -v "/mocks" | grep -E '/(api|service)/')
           done | tr '\n' ','
     preconditions:
@@ -190,14 +195,14 @@ tasks:
     cmds:
       - echo "📦 Целевые пакеты:{{.TARGET_PACKAGES}}"
       - |
-        for mod in order inventory payment; do
+        for mod in order inventory payment assembly; do
           echo "=== $mod ==="
           (cd "$mod" && go test -v -race -covermode=atomic -coverprofile={{.COVERAGE_DIR}}/${mod}.out -coverpkg={{.TARGET_PACKAGES}} ./internal/...)
         done
       - echo "📊 Объединяем отчёты покрытия..."
       - |
         head -1 {{.COVERAGE_DIR}}/order.out > {{.COVERAGE_FILE}}
-        for f in {{.COVERAGE_DIR}}/order.out {{.COVERAGE_DIR}}/inventory.out {{.COVERAGE_DIR}}/payment.out; do
+        for f in {{.COVERAGE_DIR}}/order.out {{.COVERAGE_DIR}}/inventory.out {{.COVERAGE_DIR}}/payment.out {{.COVERAGE_DIR}}/assembly.out; do
           tail -n +2 "$f" >> {{.COVERAGE_FILE}}
         done
       - echo "📊 Покрытие по функциям:"
@@ -247,17 +252,28 @@ tasks:
       - test -x {{.GOOSE}}
 
   up-core:
-    desc: "Создать общую сеть для микросервисов"
+    desc: "Создать общую сеть и поднять core контейнеры (Kafka)"
     cmds:
       - echo '[task] 🌐 Создаём общую сеть microservices-net'
       - docker network rm microservices-net 2>/dev/null || true
       - docker network create microservices-net 2>/dev/null || true
+      - echo '[task] 🚀 Поднимаем core контейнеры (Kafka)'
+      - docker compose -f deploy/compose/core/docker-compose.yml --env-file core.env up --build --detach
 
   down-core:
-    desc: "Удалить общую сеть микросервисов"
+    desc: "Остановить core контейнеры (Kafka) и удалить сеть"
     cmds:
+      - echo '[task] 🛑 Останавливаем core контейнеры (Kafka)'
+      - docker compose -f deploy/compose/core/docker-compose.yml --env-file core.env down --volumes
       - echo '[task] 🛑 Удаляем общую сеть microservices-net'
       - docker network rm microservices-net 2>/dev/null || true
+
+  test:e2e:
+    desc: "Запускает e2e-тесты order с реальной Kafka (Redpanda) через testcontainers"
+    dir: order
+    cmds:
+      - echo '🚀 e2e order (Postgres + Redpanda через testcontainers)...'
+      - go test -tags=e2e -count=1 -timeout=300s -v ./tests/e2e/...
 
   up-order:
     desc: Поднять Order сервис и все его зависимости

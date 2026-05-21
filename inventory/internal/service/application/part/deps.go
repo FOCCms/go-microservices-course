@@ -10,9 +10,15 @@ import (
 type PartRepository interface {
 	Get(ctx context.Context, id string) (model.Part, error)
 	List(ctx context.Context, filter record.PartFilter) ([]model.Part, error)
+	ListForUpdate(ctx context.Context, filter record.PartFilter) ([]model.Part, error)
 	UpdateReservationsBatch(ctx context.Context, parts []model.Part) error
+	Commit(ctx context.Context, uuids []string) error
 }
 
 type CompatibilityChecker interface {
 	Check(slots model.ResolvedShipSlots) error
+}
+
+type TxManager interface {
+	Do(ctx context.Context, fn func(ctx context.Context) error) error
 }

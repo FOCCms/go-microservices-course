@@ -9,7 +9,7 @@ import (
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 )
 
-func (s *service) Get(ctx context.Context, id uuid.UUID) (model.Order, error) {
+func (s *Service) Get(ctx context.Context, id uuid.UUID) (model.Order, error) {
 	order, err := s.orderRepository.Get(ctx, id.String())
 	if err != nil {
 		return model.Order{}, fmt.Errorf("получить заказ: %w", err)

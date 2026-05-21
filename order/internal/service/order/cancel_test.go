@@ -30,13 +30,13 @@ func TestCancel(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        args
-		setupMock   func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager)
+		setupMock   func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService)
 		expectedErr error
 	}{
 		{
 			name: "успешная отмена заказа",
 			args: args{id: orderID},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
@@ -44,7 +44,7 @@ func TestCancel(t *testing.T) {
 					Return(nil)
 
 				repo.EXPECT().
-					Get(ctx, orderID).
+					GetForUpdate(ctx, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPendingPayment}, nil)
 
 				client.EXPECT().
@@ -62,7 +62,7 @@ func TestCancel(t *testing.T) {
 		{
 			name: "ошибка: заказ уже оплачен",
 			args: args{id: orderID},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
@@ -70,7 +70,7 @@ func TestCancel(t *testing.T) {
 					Return(errs.ErrOrderAlreadyPaid)
 
 				repo.EXPECT().
-					Get(ctx, orderID).
+					GetForUpdate(ctx, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPaid}, nil)
 			},
 			expectedErr: errs.ErrOrderAlreadyPaid,
@@ -78,7 +78,7 @@ func TestCancel(t *testing.T) {
 		{
 			name: "ошибка: заказ уже отменен",
 			args: args{id: orderID},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
@@ -86,7 +86,7 @@ func TestCancel(t *testing.T) {
 					Return(errs.ErrOrderCancelled)
 
 				repo.EXPECT().
-					Get(ctx, orderID).
+					GetForUpdate(ctx, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusCancelled}, nil)
 			},
 			expectedErr: errs.ErrOrderCancelled,
@@ -94,7 +94,7 @@ func TestCancel(t *testing.T) {
 		{
 			name: "ошибка: заказ не найден",
 			args: args{id: orderID},
-			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager) {
+			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
 				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
@@ -102,7 +102,7 @@ func TestCancel(t *testing.T) {
 					Return(errs.ErrOrderNotFound)
 
 				repo.EXPECT().
-					Get(ctx, orderID).
+					GetForUpdate(ctx, orderID).
 					Return(model.Order{}, errs.ErrOrderNotFound)
 			},
 			expectedErr: errs.ErrOrderNotFound,
@@ -117,10 +117,11 @@ func TestCancel(t *testing.T) {
 			inventoryClient := mocks.NewInventoryClient(t)
 			txManager := mocks.NewTxManager(t)
 			paymentClient := mocks.NewPaymentClient(t)
+			producer := mocks.NewOrderProducerService(t)
 
-			tc.setupMock(orderRepo, inventoryClient, txManager)
+			tc.setupMock(orderRepo, inventoryClient, txManager, producer)
 
-			svc := NewService(orderRepo, paymentClient, inventoryClient, txManager)
+			svc := NewService(orderRepo, paymentClient, inventoryClient, txManager, producer)
 			err := svc.Cancel(ctx, uuid.MustParse(tc.args.id))
 
 			if tc.expectedErr != nil {

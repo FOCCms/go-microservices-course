@@ -170,6 +170,72 @@ func (_c *OrderRepository_Get_Call) RunAndReturn(run func(ctx context.Context, u
 	return _c
 }
 
+// GetForUpdate provides a mock function for the type OrderRepository
+func (_mock *OrderRepository) GetForUpdate(ctx context.Context, orderUUID string) (model.Order, error) {
+	ret := _mock.Called(ctx, orderUUID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetForUpdate")
+	}
+
+	var r0 model.Order
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (model.Order, error)); ok {
+		return returnFunc(ctx, orderUUID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) model.Order); ok {
+		r0 = returnFunc(ctx, orderUUID)
+	} else {
+		r0 = ret.Get(0).(model.Order)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, orderUUID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// OrderRepository_GetForUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetForUpdate'
+type OrderRepository_GetForUpdate_Call struct {
+	*mock.Call
+}
+
+// GetForUpdate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orderUUID string
+func (_e *OrderRepository_Expecter) GetForUpdate(ctx interface{}, orderUUID interface{}) *OrderRepository_GetForUpdate_Call {
+	return &OrderRepository_GetForUpdate_Call{Call: _e.mock.On("GetForUpdate", ctx, orderUUID)}
+}
+
+func (_c *OrderRepository_GetForUpdate_Call) Run(run func(ctx context.Context, orderUUID string)) *OrderRepository_GetForUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *OrderRepository_GetForUpdate_Call) Return(order model.Order, err error) *OrderRepository_GetForUpdate_Call {
+	_c.Call.Return(order, err)
+	return _c
+}
+
+func (_c *OrderRepository_GetForUpdate_Call) RunAndReturn(run func(ctx context.Context, orderUUID string) (model.Order, error)) *OrderRepository_GetForUpdate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Update provides a mock function for the type OrderRepository
 func (_mock *OrderRepository) Update(ctx context.Context, order model.Order) error {
 	ret := _mock.Called(ctx, order)
