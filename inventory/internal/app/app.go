@@ -30,6 +30,10 @@ const (
 	grpcKeepaliveTimeout      = 5 * time.Second
 	grpcMinPingInterval       = 5 * time.Minute
 	shutdownTimeout           = 5 * time.Second
+
+	iamServiceAddress          = "localhost:50053"
+	iamServiceKeepaliveTime    = 30 * time.Second
+	iamServiceKeepaliveTimeout = 3 * time.Second
 )
 
 type App struct {
@@ -95,23 +99,24 @@ func (a *App) initListener(ctx context.Context) error {
 }
 
 func (a *App) initGRPCServer(ctx context.Context) error {
-	opts := make([]grpc.ServerOption, 0, 2+len(Interceptors()))
-	opts = append(opts,
-		grpc.KeepaliveParams(
-			keepalive.ServerParameters{
-				MaxConnectionIdle:     grpcMaxConnectionIdle,
-				MaxConnectionAge:      grpcMaxConnectionAge,
-				MaxConnectionAgeGrace: grpcMaxConnectionAgeGrace,
-				Time:                  grpcKeepaliveTime,
-				Timeout:               grpcKeepaliveTimeout,
-			}),
+	authInterceptor := interceptor.AuthIncomingInterceptor(a.diContainer.iamClient)
+
+	a.grpcServer = grpc.NewServer(grpc.KeepaliveParams(
+		keepalive.ServerParameters{
+			MaxConnectionIdle:     grpcMaxConnectionIdle,
+			MaxConnectionAge:      grpcMaxConnectionAge,
+			MaxConnectionAgeGrace: grpcMaxConnectionAgeGrace,
+			Time:                  grpcKeepaliveTime,
+			Timeout:               grpcKeepaliveTimeout,
+		}),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             grpcMinPingInterval,
 			PermitWithoutStream: true,
-		}))
-	opts = append(opts, Interceptors()...)
-
-	a.grpcServer = grpc.NewServer(opts...)
+		}),
+		grpc.ChainUnaryInterceptor(
+			interceptor.UnaryErrorInterceptor,
+			authInterceptor),
+	)
 
 	reflection.Register(a.grpcServer)
 	health.RegisterService(a.grpcServer)
@@ -142,10 +147,4 @@ func closeAll() {
 func (a *App) runGRPCServer() error {
 	slog.Info("gRPC-сервер запущен", "address", config.AppConfig().GRPC.Address())
 	return a.grpcServer.Serve(a.listener)
-}
-
-func Interceptors() []grpc.ServerOption {
-	return []grpc.ServerOption{
-		grpc.UnaryInterceptor(interceptor.UnaryErrorInterceptor),
-	}
 }
