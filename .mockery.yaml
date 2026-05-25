@@ -31,6 +31,9 @@ packages:
   github.com/FOCCms/go-microservices-course/order/internal/api/order/v1:
     config:
       include-interface-regex: ".*Service"
+  github.com/FOCCms/go-microservices-course/order/internal/middleware:
+    config:
+      include-interface-regex: ".*Client"
   github.com/FOCCms/go-microservices-course/order/internal/service/order:
     config:
       include-interface-regex: ".*(Repository|Client|TxManager|Producer)"

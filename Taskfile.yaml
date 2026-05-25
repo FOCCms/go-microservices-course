@@ -19,7 +19,7 @@ vars:
   PROTOC_GEN_GO_GRPC: '{{.BIN_DIR}}/protoc-gen-go-grpc'
   OGEN: '{{.BIN_DIR}}/ogen'
 
-  MODULES: order inventory payment shared assembly
+  MODULES: order inventory payment shared assembly iam
 
   MOCKERY_VERSION: 'v3.7.0'
   MOCKERY: '{{.BIN_DIR}}/mockery'
@@ -103,7 +103,7 @@ tasks:
     desc: "Запускает golangci-lint"
     deps: [golangci-lint:install]
     cmds:
-      - '{{.GOLANGCI_LINT}} run --allow-parallel-runners order/... inventory/... payment/... shared/... assembly/... --config=.golangci.yml'
+      - '{{.GOLANGCI_LINT}} run --allow-parallel-runners order/... inventory/... payment/... shared/... assembly/... iam/... --config=.golangci.yml'
 
   proto:lint:
     desc: "Проверяет .proto-файлы линтером"
@@ -116,7 +116,7 @@ tasks:
   build:
     desc: "Собирает все Go-модули (go build)"
     cmds:
-      - go build ./order/... ./inventory/... ./payment/... ./assembly/... ./shared/... ./platform/...
+      - go build ./order/... ./inventory/... ./payment/... ./assembly/... ./iam/... ./shared/... ./platform/...
 
   proto:gen:
     desc: "Генерирует Go-код из .proto"
@@ -153,6 +153,11 @@ tasks:
     cmds:
       - go test -v -count=1 ./order/tests/...
 
+  test:iam:api:
+    desc: "Запускает API-тесты iam"
+    cmds:
+      - go test -v -count=1 ./iam/tests/...
+
   mockery:install:
     desc: "Устанавливает mockery"
     cmds:
@@ -171,7 +176,7 @@ tasks:
   test:
     desc: "Запускает unit-тесты с race-детектором"
     cmds:
-      - for mod in order inventory payment assembly; do echo "=== $mod ===" && (cd "$mod" && go test -v -race -count=1 ./...); done
+      - for mod in order inventory payment assembly iam; do echo "=== $mod ===" && (cd "$mod" && go test -v -race -count=1 ./...); done
 
   coverage:clean:
     desc: "Очищает директорию с отчётами покрытия"
@@ -186,7 +191,7 @@ tasks:
     vars:
       TARGET_PACKAGES:
         sh: |
-          for mod in order inventory payment assembly; do
+          for mod in order inventory payment assembly iam; do
             (cd "$mod" && go list ./internal/... | grep -v "/mocks" | grep -E '/(api|service)/')
           done | tr '\n' ','
     preconditions:
@@ -195,14 +200,14 @@ tasks:
     cmds:
       - echo "📦 Целевые пакеты:{{.TARGET_PACKAGES}}"
       - |
-        for mod in order inventory payment assembly; do
+        for mod in order inventory payment assembly iam; do
           echo "=== $mod ==="
           (cd "$mod" && go test -v -race -covermode=atomic -coverprofile={{.COVERAGE_DIR}}/${mod}.out -coverpkg={{.TARGET_PACKAGES}} ./internal/...)
         done
       - echo "📊 Объединяем отчёты покрытия..."
       - |
         head -1 {{.COVERAGE_DIR}}/order.out > {{.COVERAGE_FILE}}
-        for f in {{.COVERAGE_DIR}}/order.out {{.COVERAGE_DIR}}/inventory.out {{.COVERAGE_DIR}}/payment.out {{.COVERAGE_DIR}}/assembly.out; do
+        for f in {{.COVERAGE_DIR}}/order.out {{.COVERAGE_DIR}}/inventory.out {{.COVERAGE_DIR}}/payment.out {{.COVERAGE_DIR}}/assembly.out {{.COVERAGE_DIR}}/iam.out; do
           tail -n +2 "$f" >> {{.COVERAGE_FILE}}
         done
       - echo "📊 Покрытие по функциям:"
@@ -309,13 +314,16 @@ tasks:
       - task up-core
       - task up-inventory
       - task up-order
+      - task up-iam
 
   down-all:
     desc: Остановить и удалить все сервисы по очереди вместе с зависимостями
     cmds:
+      - task down-iam
       - task down-order
       - task down-inventory
       - task down-core
+
 
   migrate:order:up:
     desc: "Применяет все миграции Order-сервиса"
@@ -400,3 +408,51 @@ tasks:
       - echo '⚠️  Откатываем ВСЕ миграции Order...'
       - '{{.GOOSE}} -dir "$MIGRATIONS_DIR" postgres "$DB_URI" reset'
       - echo '✅ Все миграции Order откатаны!'
+
+  up-iam:
+    desc: "Поднять IAM сервис и все его зависимости (PostgreSQL + Redis)"
+    dir: deploy/compose/iam
+    cmds:
+      - echo "[task] 🔐 Поднимаем IAM с зависимостями (PostgreSQL + Redis)"
+      - docker compose --env-file ../../../iam.env up --build --detach
+
+  down-iam:
+    desc: "Остановить и удалить IAM сервис и все его зависимости"
+    dir: deploy/compose/iam
+    cmds:
+      - echo "[task] 🛑 Останавливаем IAM с зависимостями"
+      - docker compose --env-file ../../../iam.env down --volumes
+
+  migrate:iam:up:
+    desc: "Применяет все миграции IAM сервиса"
+    deps: [goose:install]
+    dotenv: ['iam.env']
+    cmds:
+      - '{{.GOOSE}} -dir $MIGRATIONS_DIR postgres "$DB_URI" up'
+
+  migrate:iam:down:
+    desc: "Откатывает последнюю миграцию IAM сервиса"
+    deps: [goose:install]
+    dotenv: ['iam.env']
+    cmds:
+      - '{{.GOOSE}} -dir $MIGRATIONS_DIR postgres "$DB_URI" down'
+
+  migrate:iam:status:
+    desc: "Показывает статус миграций IAM сервиса"
+    deps: [goose:install]
+    dotenv: ['iam.env']
+    cmds:
+      - '{{.GOOSE}} -dir $MIGRATIONS_DIR postgres "$DB_URI" status'
+
+  migrate:iam:create:
+    desc: "Создаёт новый файл миграции iam-сервиса (NAME=<имя>)"
+    deps: [ goose:install ]
+    dotenv: [ 'iam.env' ]
+    cmds:
+      - |
+        name="${CLI_ARGS:-}"
+        if [ -z "$name" ]; then
+          printf "Введите имя миграции: "; read name;
+        fi
+        mkdir -p "$MIGRATIONS_DIR"
+        {{.GOOSE}} -dir "$MIGRATIONS_DIR" create "$name" sql

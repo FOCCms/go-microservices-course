@@ -1,0 +1,22 @@
+grpc:
+  host: "localhost"
+  port: "50053"
+
+pg:
+  host: "localhost"
+  port: "5434"
+  database: "iam-service"
+  user: "iam-service-user"
+  password: "iam-service-password"
+  sslmode: "disable"
+
+
+redis:
+  host: "localhost"
+  port: "6379"
+  connection_timeout: 5s
+  idle_timeout: 10s
+  max_idle: 10
+
+session:
+  ttl: "24h"
