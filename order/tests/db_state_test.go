@@ -86,7 +86,7 @@ func partStock(t *testing.T, partUUID string) int {
 }
 
 func TestDB_Order_Create_PersistsStatusAndUserUUID(t *testing.T) {
-	userUUID := uuid.New().String()
+	userUUID := "00000000-0000-0000-0000-000000000000"
 	created, resp := createOrder(t, &CreateOrderRequest{
 		UserUUID:   userUUID,
 		HullUUID:   HullTitaniumUUID,

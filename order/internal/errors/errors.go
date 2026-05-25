@@ -14,4 +14,5 @@ var (
 	ErrPartRequired        = errors.New("не указаны обязательные детали")
 	ErrIncompatibleParts   = errors.New("детали несовместимы")
 	ErrPartTypeMismatch    = errors.New("тип детали не соответствует слоту корабля")
+	ErrUnauthorized        = errors.New("пользователь не авторизован")
 )

@@ -99,7 +99,11 @@ func (a *App) initListener(ctx context.Context) error {
 }
 
 func (a *App) initGRPCServer(ctx context.Context) error {
-	authInterceptor := interceptor.AuthIncomingInterceptor(a.diContainer.iamClient)
+	iamClient, err := a.diContainer.IAMClient(ctx)
+	if err != nil {
+		return fmt.Errorf("инициализировать grpc сервер: %w", err)
+	}
+	authInterceptor := interceptor.AuthIncomingInterceptor(iamClient)
 
 	a.grpcServer = grpc.NewServer(grpc.KeepaliveParams(
 		keepalive.ServerParameters{

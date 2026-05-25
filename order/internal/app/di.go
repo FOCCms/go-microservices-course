@@ -13,10 +13,13 @@ import (
 	"google.golang.org/grpc/keepalive"
 
 	orderV1API "github.com/FOCCms/go-microservices-course/order/internal/api/order/v1"
+	iamV1Client "github.com/FOCCms/go-microservices-course/order/internal/client/grpc/iam/v1"
 	invetntoryV1Client "github.com/FOCCms/go-microservices-course/order/internal/client/grpc/inventory/v1"
 	paymentV1Client "github.com/FOCCms/go-microservices-course/order/internal/client/grpc/payment/v1"
 	"github.com/FOCCms/go-microservices-course/order/internal/config"
 	assemblyConsumer "github.com/FOCCms/go-microservices-course/order/internal/consumer/assembly_consumer"
+	"github.com/FOCCms/go-microservices-course/order/internal/interceptor"
+	"github.com/FOCCms/go-microservices-course/order/internal/middleware"
 	orderProducer "github.com/FOCCms/go-microservices-course/order/internal/producer/order_producer"
 	orderRepository "github.com/FOCCms/go-microservices-course/order/internal/repository/order"
 	orderSrv "github.com/FOCCms/go-microservices-course/order/internal/service/order"
@@ -25,6 +28,7 @@ import (
 	wrappedKafkaProducer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/producer"
 	kafkaMiddleware "github.com/FOCCms/go-microservices-course/platform/pkg/middleware/kafka"
 	orderv1 "github.com/FOCCms/go-microservices-course/shared/pkg/openapi/order/v1"
+	authv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/auth/v1"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
 )
@@ -37,6 +41,7 @@ type diContainer struct {
 
 	inventoryClient orderSrv.InventoryClient
 	paymentClient   orderSrv.PaymentClient
+	iamClient       middleware.IAMClient
 
 	orderService *orderSrv.Service
 
@@ -142,7 +147,9 @@ func (d *diContainer) InventoryClient(_ context.Context) (orderSrv.InventoryClie
 				Time:                inventoryServiceKeepaliveTime,
 				Timeout:             inventoryServiceKeepaliveTimeout,
 				PermitWithoutStream: true,
-			}))
+			}),
+			grpc.WithChainUnaryInterceptor(
+				interceptor.AuthOutgoingInterceptor()))
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать inventory client: %w", err)
 		}
@@ -154,6 +161,28 @@ func (d *diContainer) InventoryClient(_ context.Context) (orderSrv.InventoryClie
 		d.inventoryClient = invetntoryV1Client.New(client)
 	}
 	return d.inventoryClient, nil
+}
+
+func (d *diContainer) IAMClient(_ context.Context) (middleware.IAMClient, error) {
+	if d.iamClient == nil {
+		iamConn, err := grpc.NewClient(iamServiceAddress,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                iamServiceKeepaliveTime,
+				Timeout:             iamServiceKeepaliveTimeout,
+				PermitWithoutStream: true,
+			}))
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать iam client: %w", err)
+		}
+		closer.Add("iam conn", func(_ context.Context) error {
+			return iamConn.Close()
+		})
+
+		client := authv1.NewAuthServiceClient(iamConn)
+		d.iamClient = iamV1Client.New(client)
+	}
+	return d.iamClient, nil
 }
 
 func (d *diContainer) SyncProducer() (sarama.SyncProducer, error) {

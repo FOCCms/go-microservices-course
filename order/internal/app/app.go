@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/FOCCms/go-microservices-course/order/internal/config"
+	"github.com/FOCCms/go-microservices-course/order/internal/middleware"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/logger"
 )
@@ -23,6 +24,10 @@ const (
 	paymentServiceAddress          = "localhost:50052"
 	paymentServiceKeepaliveTime    = 30 * time.Second
 	paymentServiceKeepaliveTimeout = 3 * time.Second
+
+	iamServiceAddress          = "localhost:50053"
+	iamServiceKeepaliveTime    = 60 * time.Second
+	iamServiceKeepaliveTimeout = 20 * time.Second
 
 	shutdownTimeout   = 10 * time.Second
 	readHeaderTimeout = 5 * time.Second
@@ -67,10 +72,18 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("инициализировать http сервер: %w", err)
 	}
+	iamClient, err := a.diContainer.IAMClient(ctx)
+	if err != nil {
+		return fmt.Errorf("инициализировать http сервер: %w", err)
+	}
+
+	authMiddleware := middleware.AuthMiddleware(iamClient)
+
+	handler := middleware.ErrorsMiddleware(authMiddleware(orderServer))
 
 	a.httpServer = &http.Server{
 		Addr:              config.AppConfig().HTTP.Addr(),
-		Handler:           orderServer,
+		Handler:           handler,
 		ReadHeaderTimeout: readHeaderTimeout, // Защита от Slowloris атаки
 		ReadTimeout:       readTimeout,       // Лимит на чтение всего запроса
 		WriteTimeout:      writeTimeout,      // Лимит на запись ответа
