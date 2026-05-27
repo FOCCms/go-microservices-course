@@ -1,3 +1,5 @@
+//go:build apitest
+
 // # Package tests содержит интеграционные API-тесты IAM-сервиса
 //
 // Поднимает PostgreSQL и Redis через testcontainers-go и запускает gRPC-сервер

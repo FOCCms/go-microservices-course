@@ -20,8 +20,8 @@ func UnaryErrorInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 				"panic", r,
 				"method", info.FullMethod,
 				"stack", string(debug.Stack()))
+			err = status.Error(codes.Internal, "внутренняя ошибка")
 		}
-		err = status.Error(codes.Internal, "внутренняя ошибка")
 	}()
 
 	resp, err = handler(ctx, req)

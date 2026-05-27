@@ -31,7 +31,7 @@ func SessionFromRedisView(v repoModel.Session) (model.Session, error) {
 	if err != nil {
 		return model.Session{}, fmt.Errorf("распарсить UUID сессии: %w", errs.ErrInvalidUUID)
 	}
-	userUuid, err := uuid.Parse(v.UUID)
+	userUuid, err := uuid.Parse(v.UserUUID)
 	if err != nil {
 		return model.Session{}, fmt.Errorf("распарсить UUID пользователя: %w", errs.ErrInvalidUUID)
 	}
