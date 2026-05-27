@@ -30,5 +30,5 @@ func (r *repository) Get(ctx context.Context, uuid string) (model.Session, error
 		return model.Session{}, errs.ErrSessionNotFound
 	}
 
-	return repoConverter.SessionFromRedisView(sessionRedisView), nil
+	return repoConverter.SessionFromRedisView(sessionRedisView)
 }

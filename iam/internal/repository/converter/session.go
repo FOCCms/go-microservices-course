@@ -1,10 +1,12 @@
 package converter
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 
+	errs "github.com/FOCCms/go-microservices-course/iam/internal/errors"
 	"github.com/FOCCms/go-microservices-course/iam/internal/model"
 	repoModel "github.com/FOCCms/go-microservices-course/iam/internal/repository/redis_view"
 )
@@ -24,10 +26,18 @@ func SessionToRedisView(s model.Session) repoModel.Session {
 	return view
 }
 
-func SessionFromRedisView(v repoModel.Session) model.Session {
+func SessionFromRedisView(v repoModel.Session) (model.Session, error) {
+	sessionUuid, err := uuid.Parse(v.UUID)
+	if err != nil {
+		return model.Session{}, fmt.Errorf("распарсить UUID сессии: %w", errs.ErrInvalidUUID)
+	}
+	userUuid, err := uuid.Parse(v.UUID)
+	if err != nil {
+		return model.Session{}, fmt.Errorf("распарсить UUID пользователя: %w", errs.ErrInvalidUUID)
+	}
 	session := model.Session{
-		UUID:      uuid.MustParse(v.UUID),
-		UserUUID:  uuid.MustParse(v.UserUUID),
+		UUID:      sessionUuid,
+		UserUUID:  userUuid,
 		Login:     v.Login,
 		CreatedAt: time.Unix(0, v.CreatedAtNs),
 		UpdatedAt: nil,
@@ -38,5 +48,5 @@ func SessionFromRedisView(v repoModel.Session) model.Session {
 		session.UpdatedAt = new(time.Unix(0, *v.UpdatedAtNs))
 	}
 
-	return session
+	return session, nil
 }
