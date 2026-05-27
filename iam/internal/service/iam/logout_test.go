@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
-	errs "github.com/FOCCms/go-microservices-course/iam/internal/errors"
-	"github.com/FOCCms/go-microservices-course/iam/internal/service/iam/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	errs "github.com/FOCCms/go-microservices-course/iam/internal/errors"
+	"github.com/FOCCms/go-microservices-course/iam/internal/service/iam/mocks"
 )
 
 func TestLogout(t *testing.T) {
