@@ -10,11 +10,12 @@ import (
 )
 
 type Config struct {
-	GRPC    grpcConfig    `yaml:"grpc"`
-	Logger  loggerConfig  `yaml:"logger"`
-	PG      pgConfig      `yaml:"pg"`
-	Redis   redisConfig   `yaml:"redis"`
-	Session sessionConfig `yaml:"session"`
+	GRPC           grpcConfig     `yaml:"grpc"`
+	Logger         loggerConfig   `yaml:"logger"`
+	PG             pgConfig       `yaml:"pg"`
+	Redis          redisConfig    `yaml:"redis"`
+	Session        sessionConfig  `yaml:"session"`
+	ShutdownConfig ShutdownConfig `yaml:"shutdown_config"`
 }
 
 var appConfig *Config

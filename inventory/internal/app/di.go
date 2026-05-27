@@ -129,12 +129,12 @@ func (d *diContainer) InventoryV1API(ctx context.Context) (inventoryv1.Inventory
 
 func (d *diContainer) IAMClient(_ context.Context) (interceptor.IAMClient, error) {
 	if d.iamClient == nil {
-		iamConn, err := grpc.NewClient(iamServiceAddress,
+		iamConn, err := grpc.NewClient(config.AppConfig().IAMClient.Address,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                iamServiceKeepaliveTime,
-				Timeout:             iamServiceKeepaliveTimeout,
-				PermitWithoutStream: true,
+				Time:                config.AppConfig().IAMClient.KeepaliveTime,
+				Timeout:             config.AppConfig().IAMClient.KeepaliveTimeout,
+				PermitWithoutStream: config.AppConfig().IAMClient.PermitWithoutStream,
 			}))
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать iam client: %w", err)

@@ -8,3 +8,6 @@ order_paid_consumer:
 
 ship_assembled_producer:
   topic: "ship.assembled"
+
+shutdown_config:
+  shutdown_timeout: "10s"

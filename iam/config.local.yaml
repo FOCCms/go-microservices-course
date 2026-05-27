@@ -1,6 +1,15 @@
 grpc:
   host: "localhost"
   port: "50053"
+  max_connection_idle: "15m"
+  max_connection_age: "30m"
+  max_connection_age_grace: "10s"
+  keepalive_time: "5m"
+  keepalive_timeout: "5s"
+  min_ping_interval: "5m"
+
+logger:
+  level: "info"
 
 pg:
   host: "localhost"
@@ -20,3 +29,6 @@ redis:
 
 session:
   ttl: "24h"
+
+shutdown_config:
+  shutdown_timeout: "10s"

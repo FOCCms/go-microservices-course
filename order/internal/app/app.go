@@ -8,32 +8,11 @@ import (
 	"net/http"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/FOCCms/go-microservices-course/order/internal/config"
 	"github.com/FOCCms/go-microservices-course/order/internal/middleware"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/logger"
-)
-
-const (
-	inventoryServiceAddress          = "localhost:50051"
-	inventoryServiceKeepaliveTime    = 30 * time.Second
-	inventoryServiceKeepaliveTimeout = 3 * time.Second
-
-	paymentServiceAddress          = "localhost:50052"
-	paymentServiceKeepaliveTime    = 30 * time.Second
-	paymentServiceKeepaliveTimeout = 3 * time.Second
-
-	iamServiceAddress          = "localhost:50053"
-	iamServiceKeepaliveTime    = 60 * time.Second
-	iamServiceKeepaliveTimeout = 20 * time.Second
-
-	shutdownTimeout   = 10 * time.Second
-	readHeaderTimeout = 5 * time.Second
-	readTimeout       = 15 * time.Second
-	writeTimeout      = 15 * time.Second
-	idleTimeout       = 60 * time.Second
 )
 
 type App struct {
@@ -84,10 +63,10 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	a.httpServer = &http.Server{
 		Addr:              config.AppConfig().HTTP.Addr(),
 		Handler:           handler,
-		ReadHeaderTimeout: readHeaderTimeout, // Защита от Slowloris атаки
-		ReadTimeout:       readTimeout,       // Лимит на чтение всего запроса
-		WriteTimeout:      writeTimeout,      // Лимит на запись ответа
-		IdleTimeout:       idleTimeout,       // Таймаут keep-alive соединений
+		ReadHeaderTimeout: config.AppConfig().HTTP.ReadHeaderTimeout, // Защита от Slowloris атаки
+		ReadTimeout:       config.AppConfig().HTTP.ReadTimeout,       // Лимит на чтение всего запроса
+		WriteTimeout:      config.AppConfig().HTTP.WriteTimeout,      // Лимит на запись ответа
+		IdleTimeout:       config.AppConfig().HTTP.IdleTimeout,       // Таймаут keep-alive соединений
 	}
 	closer.Add("http server", func(ctx context.Context) error {
 		return a.httpServer.Shutdown(ctx)
@@ -121,7 +100,7 @@ func (a *App) Run() error {
 }
 
 func closeAll() {
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), config.AppConfig().ShutdownConfig.ShutdownTimeout)
 	defer shutdownCancel()
 
 	if closeErr := closer.CloseAll(shutdownCtx); closeErr != nil {

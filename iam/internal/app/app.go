@@ -8,7 +8,6 @@ import (
 	"net"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -21,16 +20,6 @@ import (
 	"github.com/FOCCms/go-microservices-course/platform/pkg/logger"
 	authv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/auth/v1"
 	userv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/user/v1"
-)
-
-const (
-	grpcMaxConnectionIdle     = 15 * time.Minute
-	grpcMaxConnectionAge      = 30 * time.Minute
-	grpcMaxConnectionAgeGrace = 10 * time.Second
-	grpcKeepaliveTime         = 5 * time.Minute
-	grpcKeepaliveTimeout      = 5 * time.Second
-	grpcMinPingInterval       = 5 * time.Minute
-	shutdownTimeout           = 5 * time.Second
 )
 
 type App struct {
@@ -100,14 +89,14 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	opts = append(opts,
 		grpc.KeepaliveParams(
 			keepalive.ServerParameters{
-				MaxConnectionIdle:     grpcMaxConnectionIdle,
-				MaxConnectionAge:      grpcMaxConnectionAge,
-				MaxConnectionAgeGrace: grpcMaxConnectionAgeGrace,
-				Time:                  grpcKeepaliveTime,
-				Timeout:               grpcKeepaliveTimeout,
+				MaxConnectionIdle:     config.AppConfig().GRPC.MaxConnectionIdle,
+				MaxConnectionAge:      config.AppConfig().GRPC.MaxConnectionAge,
+				MaxConnectionAgeGrace: config.AppConfig().GRPC.MaxConnectionAgeGrace,
+				Time:                  config.AppConfig().GRPC.KeepaliveTime,
+				Timeout:               config.AppConfig().GRPC.KeepaliveTimeout,
 			}),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-			MinTime:             grpcMinPingInterval,
+			MinTime:             config.AppConfig().GRPC.MinPingInterval,
 			PermitWithoutStream: true,
 		}))
 	opts = append(opts, Interceptors()...)
@@ -138,7 +127,7 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 }
 
 func closeAll() {
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), config.AppConfig().ShutdownConfig.ShutdownTimeout)
 	defer shutdownCancel()
 
 	if closeErr := closer.CloseAll(shutdownCtx); closeErr != nil {

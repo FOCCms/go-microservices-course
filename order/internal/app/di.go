@@ -119,12 +119,12 @@ func (d *diContainer) OrderRepo(ctx context.Context) (orderSrv.OrderRepository, 
 
 func (d *diContainer) PaymentClient(_ context.Context) (orderSrv.PaymentClient, error) {
 	if d.paymentClient == nil {
-		paymentConn, err := grpc.NewClient(paymentServiceAddress,
+		paymentConn, err := grpc.NewClient(config.AppConfig().PaymentClient.Address,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                paymentServiceKeepaliveTime,
-				Timeout:             paymentServiceKeepaliveTimeout,
-				PermitWithoutStream: true,
+				Time:                config.AppConfig().PaymentClient.KeepaliveTime,
+				Timeout:             config.AppConfig().PaymentClient.KeepaliveTimeout,
+				PermitWithoutStream: config.AppConfig().PaymentClient.PermitWithoutStream,
 			}))
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать payment client: %w", err)
@@ -141,12 +141,12 @@ func (d *diContainer) PaymentClient(_ context.Context) (orderSrv.PaymentClient, 
 
 func (d *diContainer) InventoryClient(_ context.Context) (orderSrv.InventoryClient, error) {
 	if d.inventoryClient == nil {
-		inventoryConn, err := grpc.NewClient(inventoryServiceAddress,
+		inventoryConn, err := grpc.NewClient(config.AppConfig().InventoryClient.Address,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                inventoryServiceKeepaliveTime,
-				Timeout:             inventoryServiceKeepaliveTimeout,
-				PermitWithoutStream: true,
+				Time:                config.AppConfig().InventoryClient.KeepaliveTime,
+				Timeout:             config.AppConfig().InventoryClient.KeepaliveTimeout,
+				PermitWithoutStream: config.AppConfig().InventoryClient.PermitWithoutStream,
 			}),
 			grpc.WithChainUnaryInterceptor(
 				interceptor.AuthOutgoingInterceptor()))
@@ -165,12 +165,12 @@ func (d *diContainer) InventoryClient(_ context.Context) (orderSrv.InventoryClie
 
 func (d *diContainer) IAMClient(_ context.Context) (middleware.IAMClient, error) {
 	if d.iamClient == nil {
-		iamConn, err := grpc.NewClient(iamServiceAddress,
+		iamConn, err := grpc.NewClient(config.AppConfig().IAMClient.Address,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                iamServiceKeepaliveTime,
-				Timeout:             iamServiceKeepaliveTimeout,
-				PermitWithoutStream: true,
+				Time:                config.AppConfig().IAMClient.KeepaliveTime,
+				Timeout:             config.AppConfig().IAMClient.KeepaliveTimeout,
+				PermitWithoutStream: config.AppConfig().IAMClient.PermitWithoutStream,
 			}))
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать iam client: %w", err)
