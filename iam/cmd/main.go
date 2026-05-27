@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// .env опционален — ошибка загрузки допустима.
-	err := godotenv.Load("payment.env")
+	err := godotenv.Load("iam.env")
 	if err != nil {
 		slog.Warn("не удалось загрузить .env конфигурацию", "error", err)
 	}
