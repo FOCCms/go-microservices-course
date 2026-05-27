@@ -13,7 +13,7 @@ import (
 	errs "github.com/FOCCms/go-microservices-course/iam/internal/errors"
 )
 
-func UnaryErrorInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func UnaryErrorInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("перехвачена паника",
@@ -21,9 +21,10 @@ func UnaryErrorInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 				"method", info.FullMethod,
 				"stack", string(debug.Stack()))
 		}
+		err = status.Error(codes.Internal, "внутренняя ошибка")
 	}()
 
-	resp, err := handler(ctx, req)
+	resp, err = handler(ctx, req)
 	if err != nil {
 		slog.Error("ошибка в методе", "method", info.FullMethod, "err", err)
 		return nil, mapToGRPCError(err)
