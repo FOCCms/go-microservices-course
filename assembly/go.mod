@@ -7,10 +7,13 @@ replace github.com/FOCCms/go-microservices-course/shared => ./../shared
 replace github.com/FOCCms/go-microservices-course/platform => ./../platform
 
 require (
+	github.com/FOCCms/go-microservices-course/platform v0.0.0-00010101000000-000000000000
+	github.com/FOCCms/go-microservices-course/shared v0.0.0-00010101000000-000000000000
 	github.com/IBM/sarama v1.48.1
 	github.com/google/uuid v1.6.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1
+	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -31,6 +34,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
+	github.com/stretchr/objx v0.5.3 // indirect
 	golang.org/x/crypto v0.51.0 // indirect
 	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/sys v0.44.0 // indirect

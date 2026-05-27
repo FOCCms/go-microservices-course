@@ -6,13 +6,9 @@ import (
 	"log/slog"
 	"os/signal"
 	"syscall"
-	"time"
 
+	"github.com/FOCCms/go-microservices-course/assembly/internal/config"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
-)
-
-const (
-	shutdownTimeout = 10 * time.Second
 )
 
 type App struct {
@@ -50,7 +46,7 @@ func (a *App) initDI(_ context.Context) {
 }
 
 func closeAll() {
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), config.AppConfig().ShutdownConfig.ShutdownTimeout)
 	defer shutdownCancel()
 
 	if closeErr := closer.CloseAll(shutdownCtx); closeErr != nil {

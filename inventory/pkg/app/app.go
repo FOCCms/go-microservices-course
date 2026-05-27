@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 
 	partV1API "github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1"
-	"github.com/FOCCms/go-microservices-course/inventory/internal/app"
+	"github.com/FOCCms/go-microservices-course/inventory/internal/interceptor"
 	partRepository "github.com/FOCCms/go-microservices-course/inventory/internal/repository/part"
 	partService "github.com/FOCCms/go-microservices-course/inventory/internal/service/application/part"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/service/domain"
@@ -29,5 +29,7 @@ func RegisterServices(grpcServer *grpc.Server, pool *pgxpool.Pool) {
 }
 
 func Interceptors() []grpc.ServerOption {
-	return app.Interceptors()
+	return []grpc.ServerOption{
+		grpc.UnaryInterceptor(interceptor.UnaryErrorInterceptor),
+	}
 }

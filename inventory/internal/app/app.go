@@ -8,7 +8,6 @@ import (
 	"net"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -20,16 +19,6 @@ import (
 	"github.com/FOCCms/go-microservices-course/platform/pkg/grpc/health"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/logger"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
-)
-
-const (
-	grpcMaxConnectionIdle     = 15 * time.Minute
-	grpcMaxConnectionAge      = 30 * time.Minute
-	grpcMaxConnectionAgeGrace = 10 * time.Second
-	grpcKeepaliveTime         = 5 * time.Minute
-	grpcKeepaliveTimeout      = 5 * time.Second
-	grpcMinPingInterval       = 5 * time.Minute
-	shutdownTimeout           = 5 * time.Second
 )
 
 type App struct {
@@ -95,23 +84,28 @@ func (a *App) initListener(ctx context.Context) error {
 }
 
 func (a *App) initGRPCServer(ctx context.Context) error {
-	opts := make([]grpc.ServerOption, 0, 2+len(Interceptors()))
-	opts = append(opts,
-		grpc.KeepaliveParams(
-			keepalive.ServerParameters{
-				MaxConnectionIdle:     grpcMaxConnectionIdle,
-				MaxConnectionAge:      grpcMaxConnectionAge,
-				MaxConnectionAgeGrace: grpcMaxConnectionAgeGrace,
-				Time:                  grpcKeepaliveTime,
-				Timeout:               grpcKeepaliveTimeout,
-			}),
-		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-			MinTime:             grpcMinPingInterval,
-			PermitWithoutStream: true,
-		}))
-	opts = append(opts, Interceptors()...)
+	iamClient, err := a.diContainer.IAMClient(ctx)
+	if err != nil {
+		return fmt.Errorf("инициализировать grpc сервер: %w", err)
+	}
+	authInterceptor := interceptor.AuthIncomingInterceptor(iamClient)
 
-	a.grpcServer = grpc.NewServer(opts...)
+	a.grpcServer = grpc.NewServer(grpc.KeepaliveParams(
+		keepalive.ServerParameters{
+			MaxConnectionIdle:     config.AppConfig().GRPC.MaxConnectionIdle,
+			MaxConnectionAge:      config.AppConfig().GRPC.MaxConnectionAge,
+			MaxConnectionAgeGrace: config.AppConfig().GRPC.MaxConnectionAgeGrace,
+			Time:                  config.AppConfig().GRPC.KeepaliveTime,
+			Timeout:               config.AppConfig().GRPC.KeepaliveTimeout,
+		}),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             config.AppConfig().GRPC.MinPingInterval,
+			PermitWithoutStream: true,
+		}),
+		grpc.ChainUnaryInterceptor(
+			interceptor.UnaryErrorInterceptor,
+			authInterceptor),
+	)
 
 	reflection.Register(a.grpcServer)
 	health.RegisterService(a.grpcServer)
@@ -131,7 +125,7 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 }
 
 func closeAll() {
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), config.AppConfig().ShutdownConfig.ShutdownTimeout)
 	defer shutdownCancel()
 
 	if closeErr := closer.CloseAll(shutdownCtx); closeErr != nil {
@@ -142,10 +136,4 @@ func closeAll() {
 func (a *App) runGRPCServer() error {
 	slog.Info("gRPC-сервер запущен", "address", config.AppConfig().GRPC.Address())
 	return a.grpcServer.Serve(a.listener)
-}
-
-func Interceptors() []grpc.ServerOption {
-	return []grpc.ServerOption{
-		grpc.UnaryInterceptor(interceptor.UnaryErrorInterceptor),
-	}
 }

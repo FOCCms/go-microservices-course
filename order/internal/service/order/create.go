@@ -10,11 +10,16 @@ import (
 	"github.com/FOCCms/go-microservices-course/order/internal/converter"
 	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
+	"github.com/FOCCms/go-microservices-course/platform/pkg/auth"
 )
 
 func (s *Service) Create(ctx context.Context, req model.CreateOrderRequest) (model.Order, error) {
 	if req.HullUUID == uuid.Nil || req.EngineUUID == uuid.Nil {
 		return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrPartRequired)
+	}
+	userUuid, ok := auth.UserUUIDFromContext(ctx)
+	if !ok {
+		return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrUnauthorized)
 	}
 
 	var order model.Order
@@ -51,7 +56,7 @@ func (s *Service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 			TotalPrice: totalPrice,
 			Status:     model.OrderStatusPendingPayment,
 			CreatedAt:  time.Now(),
-			UserUUID:   req.UserUUID,
+			UserUUID:   userUuid,
 		}
 
 		items := make([]model.OrderItem, len(parts))

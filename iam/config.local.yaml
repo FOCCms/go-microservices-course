@@ -1,0 +1,34 @@
+grpc:
+  host: "localhost"
+  port: "50053"
+  max_connection_idle: "15m"
+  max_connection_age: "30m"
+  max_connection_age_grace: "10s"
+  keepalive_time: "5m"
+  keepalive_timeout: "5s"
+  min_ping_interval: "5m"
+
+logger:
+  level: "info"
+
+pg:
+  host: "localhost"
+  port: "5434"
+  database: "iam-service"
+  user: "iam-service-user"
+  password: "iam-service-password"
+  sslmode: "disable"
+
+
+redis:
+  host: "localhost"
+  port: "6379"
+  connection_timeout: 5s
+  idle_timeout: 10s
+  max_idle: 10
+
+session:
+  ttl: "24h"
+
+shutdown_config:
+  shutdown_timeout: "10s"

@@ -13,6 +13,7 @@ type Config struct {
 	Kafka                 kafkaConfig                 `yaml:"kafka"`
 	OrderPaidConsumer     orderPaidConsumerConfig     `yaml:"order_paid_consumer"`
 	ShipAssembledProducer shipAssembledProducerConfig `yaml:"ship_assembled_producer"`
+	ShutdownConfig        ShutdownConfig              `yaml:"shutdown_config"`
 }
 
 var appConfig *Config

@@ -13,6 +13,7 @@ import (
 	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 	"github.com/FOCCms/go-microservices-course/order/internal/service/order/mocks"
+	"github.com/FOCCms/go-microservices-course/platform/pkg/auth"
 )
 
 func TestCreate(t *testing.T) {
@@ -28,7 +29,8 @@ func TestCreate(t *testing.T) {
 	}
 
 	var (
-		ctx = context.Background()
+		userUUID = uuid.New()
+		ctx      = auth.WithUserUUID(context.Background(), userUUID)
 
 		hullUUID   = gofakeit.UUID()
 		engineUUID = gofakeit.UUID()

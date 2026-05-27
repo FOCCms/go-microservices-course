@@ -45,7 +45,6 @@ type CreateOrderRequest struct {
 	EngineUUID uuid.UUID
 	ShieldUUID *uuid.UUID
 	WeaponUUID *uuid.UUID
-	UserUUID   uuid.UUID
 }
 
 func (r *CreateOrderRequest) AssemblePartUUIDs() []uuid.UUID {

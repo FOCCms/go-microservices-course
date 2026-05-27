@@ -171,8 +171,8 @@ func (_c *OrderRepository_Get_Call) RunAndReturn(run func(ctx context.Context, u
 }
 
 // GetForUpdate provides a mock function for the type OrderRepository
-func (_mock *OrderRepository) GetForUpdate(ctx context.Context, orderUUID string) (model.Order, error) {
-	ret := _mock.Called(ctx, orderUUID)
+func (_mock *OrderRepository) GetForUpdate(ctx context.Context, uuid string) (model.Order, error) {
+	ret := _mock.Called(ctx, uuid)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetForUpdate")
@@ -181,15 +181,15 @@ func (_mock *OrderRepository) GetForUpdate(ctx context.Context, orderUUID string
 	var r0 model.Order
 	var r1 error
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (model.Order, error)); ok {
-		return returnFunc(ctx, orderUUID)
+		return returnFunc(ctx, uuid)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string) model.Order); ok {
-		r0 = returnFunc(ctx, orderUUID)
+		r0 = returnFunc(ctx, uuid)
 	} else {
 		r0 = ret.Get(0).(model.Order)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, orderUUID)
+		r1 = returnFunc(ctx, uuid)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -203,12 +203,12 @@ type OrderRepository_GetForUpdate_Call struct {
 
 // GetForUpdate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - orderUUID string
-func (_e *OrderRepository_Expecter) GetForUpdate(ctx interface{}, orderUUID interface{}) *OrderRepository_GetForUpdate_Call {
-	return &OrderRepository_GetForUpdate_Call{Call: _e.mock.On("GetForUpdate", ctx, orderUUID)}
+//   - uuid string
+func (_e *OrderRepository_Expecter) GetForUpdate(ctx interface{}, uuid interface{}) *OrderRepository_GetForUpdate_Call {
+	return &OrderRepository_GetForUpdate_Call{Call: _e.mock.On("GetForUpdate", ctx, uuid)}
 }
 
-func (_c *OrderRepository_GetForUpdate_Call) Run(run func(ctx context.Context, orderUUID string)) *OrderRepository_GetForUpdate_Call {
+func (_c *OrderRepository_GetForUpdate_Call) Run(run func(ctx context.Context, uuid string)) *OrderRepository_GetForUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -231,7 +231,7 @@ func (_c *OrderRepository_GetForUpdate_Call) Return(order model.Order, err error
 	return _c
 }
 
-func (_c *OrderRepository_GetForUpdate_Call) RunAndReturn(run func(ctx context.Context, orderUUID string) (model.Order, error)) *OrderRepository_GetForUpdate_Call {
+func (_c *OrderRepository_GetForUpdate_Call) RunAndReturn(run func(ctx context.Context, uuid string) (model.Order, error)) *OrderRepository_GetForUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }

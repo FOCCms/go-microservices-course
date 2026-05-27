@@ -1,6 +1,15 @@
 grpc:
   host: "localhost"
   port: "50051"
+  max_connection_idle: "15m"
+  max_connection_age: "30m"
+  max_connection_age_grace: "10s"
+  keepalive_time: "5m"
+  keepalive_timeout: "5s"
+  min_ping_interval: "5m"
+
+logger:
+  level: "info"
 
 pg:
   host: "localhost"
@@ -9,3 +18,12 @@ pg:
   user: "inventory-service-user"
   password: "inventory-service-password"
   sslmode: "disable"
+
+iam_client:
+  address: "localhost:50053"
+  keepalive_time: "60s"
+  keepalive_timeout: "20s"
+  permit_without_stream: true
+
+shutdown_config:
+  shutdown_timeout: "10s"

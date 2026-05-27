@@ -28,3 +28,6 @@ jobs:
 
       - name: Run API tests
         run: task test:api
+
+      - name: Run API tests
+        run: task test:iam:api

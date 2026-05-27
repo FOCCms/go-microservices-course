@@ -1881,56 +1881,6 @@ func TestInventory_ReserveRelease_FullCycle(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Тесты user_uuid (валидация и проброс через всю цепочку)
-
-func TestOrder_Create_MissingUserUUID(t *testing.T) {
-	// Без user_uuid — ogen отклоняет запрос ещё до сервиса
-	body := `{"hull_uuid": "` + HullAluminumUUID + `", "engine_uuid": "` + EngineIonCUUID + `"}`
-	httpReq, err := http.NewRequest(http.MethodPost, orderBaseURL()+"/api/v1/orders", bytes.NewReader([]byte(body)))
-	require.NoError(t, err)
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := httpClient.Do(httpReq)
-	require.NoError(t, err)
-	defer func() { _ = resp.Body.Close() }()
-
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-}
-
-func TestOrder_Create_InvalidUserUUIDFormat(t *testing.T) {
-	// Невалидный формат user_uuid — ogen отклоняет запрос
-	body := `{"user_uuid": "not-a-uuid", "hull_uuid": "` + HullAluminumUUID + `", "engine_uuid": "` + EngineIonCUUID + `"}`
-	httpReq, err := http.NewRequest(http.MethodPost, orderBaseURL()+"/api/v1/orders", bytes.NewReader([]byte(body)))
-	require.NoError(t, err)
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := httpClient.Do(httpReq)
-	require.NoError(t, err)
-	defer func() { _ = resp.Body.Close() }()
-
-	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-}
-
-func TestOrder_Get_ReturnsUserUUID(t *testing.T) {
-	// user_uuid из CreateOrderRequest должен сохраняться в БД и возвращаться в GET
-	userUUID := uuid.New().String()
-	req := &CreateOrderRequest{
-		UserUUID:   userUUID,
-		HullUUID:   HullAluminumUUID,
-		EngineUUID: EngineIonCUUID,
-	}
-
-	createResult, createResp := createOrder(t, req)
-	_ = createResp.Body.Close()
-	require.NotNil(t, createResult)
-
-	order, resp := getOrder(t, createResult.OrderUUID)
-	defer func() { _ = resp.Body.Close() }()
-
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, userUUID, order.UserUUID, "user_uuid должен пробрасываться из запроса в ответ GET")
-}
-
 // Тесты Cancel по статусу ASSEMBLED
 //
 // В API-тестах Kafka нет (noopProducer), поэтому статус ASSEMBLED через обычную
