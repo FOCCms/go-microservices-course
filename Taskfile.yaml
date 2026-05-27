@@ -31,6 +31,8 @@ vars:
   GOOSE_VERSION: 'v3.27.0'
   GOOSE: '{{.BIN_DIR}}/goose'
 
+  KIBANA_URL: 'http://localhost:5601'
+
 tasks:
   formatters:install:
     desc: "Устанавливает gofumpt и gci"
@@ -151,12 +153,24 @@ tasks:
   test:api:
     desc: "Запускает API-тесты"
     cmds:
-      - go test -v -count=1 ./order/tests/...
+      - task: test:order:api
+      - task: test:inventory:api
+      - task: test:iam:api
+
+  test:order:api:
+    desc: "Запускает API-тесты order"
+    cmds:
+      - go test -v -tags=apitest -count=1 ./order/tests/...
+
+  test:inventory:api:
+    desc: "Запускает API-тесты inventory"
+    cmds:
+      - go test -v -tags=apitest -count=1 ./inventory/tests/...
 
   test:iam:api:
     desc: "Запускает API-тесты iam"
     cmds:
-      - go test -tags=apitest -v -count=1 ./iam/tests/...
+      - task
 
   mockery:install:
     desc: "Устанавливает mockery"
@@ -264,10 +278,14 @@ tasks:
       - docker network create microservices-net 2>/dev/null || true
       - echo '[task] 🚀 Поднимаем core контейнеры (Kafka)'
       - docker compose -f deploy/compose/core/docker-compose.yml --env-file core.env up --build --detach
+      - echo '[task] 📊 Поднимаем observability (OTEL Collector, ES, Kibana, Prometheus, Grafana, Jaeger)'
+      - docker compose -f deploy/compose/observability/docker-compose.yml --env-file core.env up --build --detach
 
   down-core:
     desc: "Остановить core контейнеры (Kafka) и удалить сеть"
     cmds:
+      - echo '[task] 🛑 Останавливаем observability'
+      - docker compose -f deploy/compose/observability/docker-compose.yml --env-file core.env down --volumes
       - echo '[task] 🛑 Останавливаем core контейнеры (Kafka)'
       - docker compose -f deploy/compose/core/docker-compose.yml --env-file core.env down --volumes
       - echo '[task] 🛑 Удаляем общую сеть microservices-net'
@@ -456,3 +474,41 @@ tasks:
         fi
         mkdir -p "$MIGRATIONS_DIR"
         {{.GOOSE}} -dir "$MIGRATIONS_DIR" create "$name" sql
+
+  kibana:init:
+    desc: "Ожидает Kibana и создает Data View для просмотра логов"
+    cmds:
+      - task: kibana:wait
+      - task: kibana:create-view
+
+  kibana:wait:
+    desc: "Ожидает готовности Kibana"
+    cmds:
+      - echo '⏳ Ожидаем готовности Kibana...'
+      - |
+        for i in $(seq 1 60); do
+          curl -sSf {{.KIBANA_URL}}/api/status >/dev/null 2>&1 && break
+          sleep 2
+        done
+
+  kibana:create-view:
+    desc: "Создает Data View в Kibana и устанавливает его как default"
+    cmds:
+      - echo '📝 Создаем Data View otel-logs*...'
+      - |
+        RESPONSE=$(curl -sS -X POST {{.KIBANA_URL}}/api/data_views/data_view \
+          -H "kbn-xsrf: true" \
+          -H "Content-Type: application/json" \
+          --data '{"data_view":{"title":"otel-logs*","name":"OTel Logs","timeFieldName":"@timestamp","allowNoIndex":true},"override":true}')
+        DATA_VIEW_ID=$(echo "$RESPONSE" | jq -r ".data_view.id // empty")
+        echo "Data View ID: $DATA_VIEW_ID"
+        if [ -n "$DATA_VIEW_ID" ]; then
+          curl -sS -X POST {{.KIBANA_URL}}/api/data_views/default \
+            -H "kbn-xsrf: true" \
+            -H "Content-Type: application/json" \
+            -d "{\"data_view_id\": \"$DATA_VIEW_ID\", \"force\": true}"
+          echo '✅ Data View создан и установлен как default'
+        else
+          echo '❌ Не удалось создать Data View'
+          exit 1
+        fi
