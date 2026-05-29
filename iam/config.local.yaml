@@ -1,3 +1,5 @@
+stage: "development"
+
 grpc:
   host: "localhost"
   port: "50053"
@@ -32,3 +34,7 @@ session:
 
 shutdown_config:
   shutdown_timeout: "10s"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "iam-service"

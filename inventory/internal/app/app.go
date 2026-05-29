@@ -70,7 +70,16 @@ func (a *App) initDI(_ context.Context) {
 }
 
 func (a *App) initLogger(_ context.Context) {
-	logger.Init(config.AppConfig().Logger.Level)
+	logger.Init(logger.Config{
+		Level:             config.AppConfig().Logger.Level,
+		ServiceName:       config.AppConfig().OtelConfig.ServiceName,
+		Environment:       config.AppConfig().Stage,
+		EnableOTLP:        true,
+		CollectorEndpoint: config.AppConfig().OtelConfig.Endpoint,
+	})
+	closer.Add("logger", func(ctx context.Context) error {
+		return logger.Close()
+	})
 }
 
 func (a *App) initListener(ctx context.Context) error {

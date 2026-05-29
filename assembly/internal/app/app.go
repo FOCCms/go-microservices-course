@@ -9,6 +9,7 @@ import (
 
 	"github.com/FOCCms/go-microservices-course/assembly/internal/config"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
+	"github.com/FOCCms/go-microservices-course/platform/pkg/logger"
 )
 
 type App struct {
@@ -39,10 +40,24 @@ func (a *App) Run() error {
 
 func (a *App) initDeps(ctx context.Context) {
 	a.initDI(ctx)
+	a.initLogger(ctx)
 }
 
 func (a *App) initDI(_ context.Context) {
 	a.diContainer = &diContainer{}
+}
+
+func (a *App) initLogger(_ context.Context) {
+	logger.Init(logger.Config{
+		Level:             config.AppConfig().Logger.Level,
+		ServiceName:       config.AppConfig().OtelConfig.ServiceName,
+		Environment:       config.AppConfig().Stage,
+		EnableOTLP:        true,
+		CollectorEndpoint: config.AppConfig().OtelConfig.Endpoint,
+	})
+	closer.Add("logger", func(ctx context.Context) error {
+		return logger.Close()
+	})
 }
 
 func closeAll() {

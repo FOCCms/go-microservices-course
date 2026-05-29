@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/google/uuid"
 
@@ -12,6 +13,9 @@ import (
 
 func (s *Service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
 	var transactionUUID uuid.UUID
+
+	slog.Info("оплата заказа: старт", slog.String("order_uuid", id.String()))
+
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
 		order, err := s.orderRepository.GetForUpdate(ctx, id.String())
 		if err != nil {
@@ -45,6 +49,13 @@ func (s *Service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMet
 			return fmt.Errorf("оплатить заказ: %w", err)
 		}
 
+		slog.Info("оплата заказа: успешно",
+			slog.String("order_uuid", id.String()),
+			slog.String("user_uuid", order.UserUUID.String()),
+			slog.String("payment_method", string(method)),
+			slog.Int64("total_price", order.TotalPrice),
+			slog.String("transaction_uuid", transactionUUID.String()),
+		)
 		return nil
 	})
 

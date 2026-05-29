@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -81,6 +82,14 @@ func (s *Service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 	if err != nil {
 		return model.Order{}, err
 	}
+
+	slog.Info("заказ успешно создан",
+		slog.String("order_uuid", order.UUID.String()),
+		slog.String("user_uuid", order.UserUUID.String()),
+		slog.Int64("total_price", order.TotalPrice),
+		slog.String("status", string(order.Status)),
+		slog.Any("part_uuids", req.AssemblePartUUIDs()),
+	)
 
 	return order, nil
 }

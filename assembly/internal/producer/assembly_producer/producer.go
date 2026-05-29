@@ -6,6 +6,7 @@ import (
 
 	"github.com/FOCCms/go-microservices-course/assembly/internal/model"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/kafka"
+	kafkamv "github.com/FOCCms/go-microservices-course/platform/pkg/middleware/kafka"
 )
 
 type service struct {
@@ -25,7 +26,8 @@ func (s *service) ProduceShipAssembled(ctx context.Context, event model.ShipAsse
 	}
 
 	return s.shipAssembledProducer.Send(ctx, &kafka.Message{
-		Key:   []byte(event.EventUUID.String()),
-		Value: payload,
+		Key:     []byte(event.EventUUID.String()),
+		Value:   payload,
+		Headers: kafkamv.ProducerSessionHeaders(ctx),
 	})
 }

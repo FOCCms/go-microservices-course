@@ -3,6 +3,7 @@ package part
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
 )
@@ -26,6 +27,12 @@ func (s *service) Release(ctx context.Context, uuids []string) error {
 		if err != nil {
 			return fmt.Errorf("освободить детали: %w", err)
 		}
+
+		slog.InfoContext(ctx, "детали успешно освобождены",
+			slog.Int("parts_count", len(parts)), // сколько объектов обновили
+			slog.Any("part_uuids", uuids),       // какие UUID освободились
+		)
+
 		return nil
 	})
 	if err != nil {

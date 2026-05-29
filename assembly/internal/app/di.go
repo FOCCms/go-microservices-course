@@ -67,6 +67,7 @@ func (d *diContainer) OrderPaidConsumer() (*wrappedKafkaConsumer.Consumer, error
 			},
 			wrappedKafkaConsumer.WithMiddlewares(
 				kafkaMiddleware.ConsumerLogging(),
+				kafkaMiddleware.ConsumerSession(),
 			),
 		)
 	}

@@ -25,7 +25,9 @@ func (*service) Pay(ctx context.Context, req model.PayRequest) (string, error) {
 	transactionUuid := uuid.New()
 
 	slog.Info("оплата прошла успешно",
-		"order_uuid:", req.OrderUUID, ", transaction_uuid:", transactionUuid,
+		slog.String("order_uuid", req.OrderUUID),
+		slog.String("transaction_uuid", transactionUuid.String()),
+		slog.String("payment_method", string(req.PaymentMethod)),
 	)
 
 	return transactionUuid.String(), nil

@@ -1,3 +1,5 @@
+stage: "development"
+
 grpc:
   host: "localhost"
   port: "50051"
@@ -27,3 +29,7 @@ iam_client:
 
 shutdown_config:
   shutdown_timeout: "10s"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "inventory-service"

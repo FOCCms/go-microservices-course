@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
@@ -16,6 +17,9 @@ func (s *Service) CommitParts(ctx context.Context, event model.ShipAssembledEven
 		}
 
 		if order.Status == model.OrderStatusAssembled {
+			slog.Debug("событие ShipAssembled пропущено: заказ уже собран (идемпотентность)",
+				slog.String("order_uuid", event.OrderUUID.String()),
+			)
 			return nil
 		}
 		if err = checkCommitStatus(order.Status); err != nil {
@@ -33,6 +37,11 @@ func (s *Service) CommitParts(ctx context.Context, event model.ShipAssembledEven
 		if err != nil {
 			return fmt.Errorf("списать детали: %w", err)
 		}
+
+		slog.Info("детали успешно списаны со склада для собранного корабля",
+			slog.String("order_uuid", order.UUID.String()),
+			slog.String("user_uuid", order.UserUUID.String()),
+		)
 
 		return nil
 	})

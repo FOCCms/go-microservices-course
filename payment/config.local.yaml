@@ -1,3 +1,9 @@
+stage: "development"
+
 grpc:
   host: "localhost"
   port: "50052"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "payment-service"

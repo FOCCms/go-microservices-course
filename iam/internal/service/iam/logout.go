@@ -3,6 +3,7 @@ package iam
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/google/uuid"
 
@@ -21,6 +22,10 @@ func (s *Service) Logout(ctx context.Context, sessionUuid string) error {
 	if err != nil {
 		return fmt.Errorf("разлогинить пользователя: %w", err)
 	}
+
+	slog.Info("сессия пользователя успешно завершена (logout)",
+		slog.String("session_uuid", sessionUuid),
+	)
 
 	return nil
 }

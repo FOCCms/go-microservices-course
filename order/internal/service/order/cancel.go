@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/google/uuid"
 
@@ -18,19 +19,25 @@ func (s *Service) Cancel(ctx context.Context, id uuid.UUID) error {
 		}
 
 		if err = checkCancelStatus(order.Status); err != nil {
-			return err
+			return fmt.Errorf("отменить заказ: %w", err)
 		}
 
 		err = s.inventoryClient.ReleaseParts(ctx, order.AssemblePartUUIDs())
 		if err != nil {
-			return fmt.Errorf("отменить заказ: %w", err)
+			return fmt.Errorf("отменить заказ: освободить детали: %w", err)
 		}
 
 		order.Status = model.OrderStatusCancelled
 		err = s.orderRepository.Update(ctx, order)
 		if err != nil {
-			return fmt.Errorf("отменить заказ: не удалось освободить детали в инвентаре: %w", err)
+			return fmt.Errorf("отменить заказ: %w", err)
 		}
+
+		slog.Info("заказ успешно отменен",
+			slog.String("order_uuid", order.UUID.String()),
+			slog.String("user_uuid", order.UserUUID.String()),
+			slog.Any("released_part_uuids", order.AssemblePartUUIDs()),
+		)
 
 		return nil
 	})
@@ -40,12 +47,12 @@ func (s *Service) Cancel(ctx context.Context, id uuid.UUID) error {
 func checkCancelStatus(status model.OrderStatus) error {
 	if status != model.OrderStatusPendingPayment {
 		if status == model.OrderStatusPaid {
-			return fmt.Errorf("отменить заказ: %w", errs.ErrOrderAlreadyPaid)
+			return errs.ErrOrderAlreadyPaid
 		}
 		if status == model.OrderStatusCancelled {
-			return fmt.Errorf("отменить заказ: %w", errs.ErrOrderCancelled)
+			return errs.ErrOrderCancelled
 		}
-		return fmt.Errorf("отменить заказ: %w", errs.ErrOrderStatusConflict)
+		return errs.ErrOrderStatusConflict
 	}
 	return nil
 }

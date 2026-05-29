@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
@@ -12,6 +13,9 @@ import (
 func (a *api) CancelOrder(ctx context.Context, params orderv1.CancelOrderParams) (orderv1.CancelOrderRes, error) {
 	err := a.orderService.Cancel(ctx, params.OrderUUID)
 	if err != nil {
+		slog.Error("не удалось отменить заказ",
+			slog.String("error", err.Error()),
+		)
 		if errors.Is(err, errs.ErrOrderNotFound) {
 			return &orderv1.CancelOrderNotFound{
 				Code:    http.StatusNotFound,
