@@ -46,7 +46,7 @@ func TestValidateCompatibility(t *testing.T) {
 					model.RestorePart(engineID, "Двигатель", "", valueobject.PartTypeEngine, 10, 10, 0, valueobject.PartProperties{}, anyTime),
 				}
 
-				repo.EXPECT().List(ctx, mock.Anything).Return(parts, nil)
+				repo.EXPECT().List(mock.Anything, mock.Anything).Return(parts, nil)
 				checker.EXPECT().Check(mock.Anything).Return(nil)
 			},
 			wantErr: nil,
@@ -66,7 +66,7 @@ func TestValidateCompatibility(t *testing.T) {
 					model.RestorePart(engineID, "Двигатель", "", valueobject.PartTypeEngine, 10, 10, 0, valueobject.PartProperties{}, anyTime),
 				}
 
-				repo.EXPECT().List(ctx, mock.Anything).Return(parts, nil)
+				repo.EXPECT().List(mock.Anything, mock.Anything).Return(parts, nil)
 			},
 			wantErr: errs.ErrPartTypeMismatch,
 		},
@@ -79,7 +79,7 @@ func TestValidateCompatibility(t *testing.T) {
 					model.RestorePart(engineID, "Двигатель", "", valueobject.PartTypeEngine, 10, 10, 0, valueobject.PartProperties{}, anyTime),
 				}
 
-				repo.EXPECT().List(ctx, mock.Anything).Return(parts, nil)
+				repo.EXPECT().List(mock.Anything, mock.Anything).Return(parts, nil)
 				checker.EXPECT().Check(mock.Anything).Return(errs.ErrIncompatibleParts)
 			},
 			wantErr: errs.ErrIncompatibleParts,

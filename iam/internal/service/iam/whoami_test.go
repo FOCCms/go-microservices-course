@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	errs "github.com/FOCCms/go-microservices-course/iam/internal/errors"
@@ -68,7 +69,7 @@ func TestWhoami(t *testing.T) {
 			name:      "ошибка: сбой при получении сессии",
 			sessionID: validSessionID,
 			setupMock: func(uRepo *mocks.UserRepository, sRepo *mocks.SessionRepository) {
-				sRepo.EXPECT().Get(ctx, validSessionID).Return(model.Session{}, dbErr)
+				sRepo.EXPECT().Get(mock.Anything, validSessionID).Return(model.Session{}, dbErr)
 			},
 			expectedSess: model.Session{},
 			expectedUser: model.User{},
@@ -78,8 +79,8 @@ func TestWhoami(t *testing.T) {
 			name:      "ошибка: сессия найдена, но сбой при получении пользователя",
 			sessionID: validSessionID,
 			setupMock: func(uRepo *mocks.UserRepository, sRepo *mocks.SessionRepository) {
-				sRepo.EXPECT().Get(ctx, validSessionID).Return(testSession, nil)
-				uRepo.EXPECT().GetByUUID(ctx, testUserUUID).Return(model.User{}, dbErr)
+				sRepo.EXPECT().Get(mock.Anything, validSessionID).Return(testSession, nil)
+				uRepo.EXPECT().GetByUUID(mock.Anything, testUserUUID).Return(model.User{}, dbErr)
 			},
 			expectedSess: model.Session{},
 			expectedUser: model.User{},
@@ -89,8 +90,8 @@ func TestWhoami(t *testing.T) {
 			name:      "успешное получение сессии и пользователя",
 			sessionID: validSessionID,
 			setupMock: func(uRepo *mocks.UserRepository, sRepo *mocks.SessionRepository) {
-				sRepo.EXPECT().Get(ctx, validSessionID).Return(testSession, nil)
-				uRepo.EXPECT().GetByUUID(ctx, testUserUUID).Return(testUser, nil)
+				sRepo.EXPECT().Get(mock.Anything, validSessionID).Return(testSession, nil)
+				uRepo.EXPECT().GetByUUID(mock.Anything, testUserUUID).Return(testUser, nil)
 			},
 			expectedSess: testSession,
 			expectedUser: testUser,

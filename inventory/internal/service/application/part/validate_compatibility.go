@@ -48,6 +48,7 @@ func (s *service) ValidateCompatibility(ctx context.Context, slots model.ShipSlo
 	if err = s.compatibilityChecker.Check(resolved); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
+		return fmt.Errorf("проверить совместимость деталей: %w", err)
 	}
 
 	span.SetStatus(codes.Ok, "конфигурация корабля валидна и совместима")

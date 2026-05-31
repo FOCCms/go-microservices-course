@@ -7,6 +7,7 @@ import (
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
@@ -45,7 +46,7 @@ func TestGet(t *testing.T) {
 			args: args{id: orderID},
 			setupMock: func(repo *mocks.OrderRepository) {
 				repo.EXPECT().
-					Get(ctx, orderID).
+					Get(mock.Anything, orderID).
 					Return(mockOrder, nil)
 			},
 			expected: expected{err: nil, order: mockOrder},
@@ -55,7 +56,7 @@ func TestGet(t *testing.T) {
 			args: args{id: orderID},
 			setupMock: func(repo *mocks.OrderRepository) {
 				repo.EXPECT().
-					Get(ctx, orderID).
+					Get(mock.Anything, orderID).
 					Return(model.Order{}, errs.ErrOrderNotFound)
 			},
 			expected: expected{err: errs.ErrOrderNotFound, order: model.Order{}},

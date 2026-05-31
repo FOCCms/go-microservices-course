@@ -40,22 +40,22 @@ func TestCommitParts(t *testing.T) {
 			name: "успешное списание деталей (заказ переходит в ASSEMBLED)",
 			args: args{event: event},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(nil)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID).
+					GetForUpdate(mock.Anything, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPaid}, nil)
 
 				client.EXPECT().
-					CommitParts(ctx, mock.Anything).
+					CommitParts(mock.Anything, mock.Anything).
 					Return(nil)
 
 				repo.EXPECT().
-					Update(ctx, mock.MatchedBy(func(o model.Order) bool {
+					Update(mock.Anything, mock.MatchedBy(func(o model.Order) bool {
 						return o.Status == model.OrderStatusAssembled
 					})).
 					Return(nil)
@@ -66,14 +66,14 @@ func TestCommitParts(t *testing.T) {
 			name: "идемпотентность: заказ уже ASSEMBLED, ничего не делаем",
 			args: args{event: event},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(nil)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID).
+					GetForUpdate(mock.Anything, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusAssembled}, nil)
 			},
 			expectedErr: nil,
@@ -82,14 +82,14 @@ func TestCommitParts(t *testing.T) {
 			name: "ошибка: заказ отменен (конфликт статуса)",
 			args: args{event: event},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(errs.ErrOrderCancelled)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID).
+					GetForUpdate(mock.Anything, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusCancelled}, nil)
 			},
 			expectedErr: errs.ErrOrderCancelled,
@@ -98,14 +98,14 @@ func TestCommitParts(t *testing.T) {
 			name: "ошибка: заказ не найден в репозитории",
 			args: args{event: event},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(errs.ErrOrderNotFound)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID).
+					GetForUpdate(mock.Anything, orderID).
 					Return(model.Order{}, errs.ErrOrderNotFound)
 			},
 			expectedErr: errs.ErrOrderNotFound,
