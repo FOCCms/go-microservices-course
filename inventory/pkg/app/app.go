@@ -3,6 +3,8 @@ package app
 import (
 	"log/slog"
 
+	iamV1Client "github.com/FOCCms/go-microservices-course/inventory/internal/client/grpc/iam/v1"
+	authv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/auth/v1"
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -28,8 +30,13 @@ func RegisterServices(grpcServer *grpc.Server, pool *pgxpool.Pool) {
 	inventoryv1.RegisterInventoryServiceServer(grpcServer, api)
 }
 
-func Interceptors() []grpc.ServerOption {
+func Interceptors(authClient authv1.AuthServiceClient) []grpc.ServerOption {
+
+	authInterceptor := interceptor.AuthIncomingInterceptor(iamV1Client.New(authClient))
 	return []grpc.ServerOption{
-		grpc.UnaryInterceptor(interceptor.UnaryErrorInterceptor),
+		grpc.ChainUnaryInterceptor(
+			interceptor.UnaryErrorInterceptor,
+			authInterceptor,
+		),
 	}
 }

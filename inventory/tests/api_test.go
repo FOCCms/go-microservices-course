@@ -80,7 +80,7 @@ func startInventory(t *testing.T, authClient *iamClient.Client) inventoryv1.Inve
 	t.Helper()
 	lis := bufconn.Listen(bufSize)
 	server := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(interceptor.Auth(authClient)),
+		grpc.ChainUnaryInterceptor(interceptor.AuthIncomingInterceptor(authClient)),
 	)
 	inventoryv1.RegisterInventoryServiceServer(server, &stubInventoryServer{})
 

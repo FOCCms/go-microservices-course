@@ -13,7 +13,7 @@
 // На неделе 6 в цепочке появилась session-авторизация: HTTP защищён Bearer-middleware,
 // Inventory gRPC — auth-interceptor, а session_uuid пробрасывается через Kafka headers
 // (см. platform/pkg/middleware/kafka). Поэтому в setup поднят ещё IAM (Postgres + Redis
-// + bufconn-сервер), а bufconn-клиент Inventory снабжён SessionForwarder
+// + bufconn-сервер), а bufconn-клиент Inventory снабжён AuthOutgoingInterceptor
 //
 // Запускается только под тегом сборки e2e (см. solutions/week_6/Taskfile.yaml).
 // В обычном go test ./... не собирается, чтобы не платить временем старта Redpanda
@@ -32,6 +32,7 @@ import (
 	"testing"
 	"time"
 
+	orderService "github.com/FOCCms/go-microservices-course/order/internal/service/order"
 	"github.com/IBM/sarama"
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
@@ -155,7 +156,7 @@ func runMain(m *testing.M) int {
 
 	// 6. Inventory + Payment gRPC через bufconn — Kafka их не касается,
 	// поэтому остаются in-memory (быстрее, чем поднимать ещё контейнеры).
-	// Inventory снабжён auth-interceptor'ом на сервере и SessionForwarder'ом
+	// Inventory снабжён auth-interceptor'ом на сервере и AuthOutgoingInterceptor'ом
 	// на клиенте — иначе CommitParts из assembly_consumer и GetPart из теста
 	// не прошли бы аутентификацию
 	invConn := startBufconnGRPCInventory(ctx, cleanups, inventoryPool, authSvcClient)
@@ -182,12 +183,12 @@ func runMain(m *testing.M) int {
 	cleanups.add("order sarama producer", func(_ context.Context) error { return syncProducer.Close() })
 
 	orderPaidKafkaProducer := wrappedKafkaProducer.NewProducer(syncProducer, orderPaidTopic)
-	realOrderProducer := orderProducer.New(orderPaidKafkaProducer)
+	realOrderProducer := orderProducer.NewService(orderPaidKafkaProducer)
 
 	// 10. Order HTTP-сервер с реальным продьюсером (НЕ noopProducer как в api_test).
 	// Дополнительно подключаем authSvcClient — на неделе 6 HTTP-обработчик обёрнут
 	// в Bearer-middleware
-	handler := mustNew(app.NewHTTPHandlerWithProducer(orderPool, txManager, inventoryClient, paymentClient, authSvcClient, realOrderProducer))
+	handler := mustNew(app.NewHTTPHandlerWithProducer(orderPool, txManager, inventoryClient, paymentClient, realOrderProducer, authSvcClient))
 	ts = httptest.NewServer(handler)
 	cleanups.add("httptest server", func(_ context.Context) error { ts.Close(); return nil })
 
@@ -371,14 +372,14 @@ func startBufconnGRPCInventory(ctx context.Context, cleanups *cleanupStack, pool
 	}()
 	cleanups.add("inventory grpc server", func(_ context.Context) error { server.Stop(); return nil })
 
-	// SessionForwarder автоматически пробрасывает session-uuid из контекста
+	// AuthOutgoingInterceptor автоматически пробрасывает session-uuid из контекста
 	// в исходящие gRPC metadata — нужен и assembly_consumer'у для CommitParts,
 	// и helper'у getStock в тесте
 	conn, err := grpc.NewClient(
 		"passthrough:///bufnet",
 		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return lis.Dial() }),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(interceptor.SessionForwarder()),
+		grpc.WithUnaryInterceptor(interceptor.AuthOutgoingInterceptor()),
 	)
 	if err != nil {
 		panic(fmt.Errorf("inventory grpc client: %w", err))
@@ -444,11 +445,12 @@ func startOrderShipAssembledConsumer(
 	// Реальный код из order/internal/consumer/assembly_consumer.
 	// Репозиторий и inventory-клиент берём из тех же internal-пакетов,
 	// что использует прод-DI (order/internal/app/di.go)
+
+	orderSvc := orderService.NewService(orderRepoPkg.NewRepository(pool, txManager), nil, inventoryClientPkg.New(invClient), txManager, nil)
+
 	svc := assemblyconsumer.NewService(
 		wrappedConsumer,
-		orderRepoPkg.New(pool, txManager),
-		inventoryClientPkg.New(invClient),
-		txManager,
+		orderSvc,
 	)
 
 	go func() {

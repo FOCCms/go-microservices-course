@@ -301,7 +301,7 @@ func TestMain(m *testing.M) {
 		"passthrough:///bufnet",
 		grpc.WithContextDialer(invBufDialer),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(interceptor.SessionForwarder()),
+		grpc.WithUnaryInterceptor(interceptor.AuthOutgoingInterceptor()),
 	)
 	if err != nil {
 		panic(err)

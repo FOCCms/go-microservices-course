@@ -17,6 +17,8 @@ var publicMethods = map[string]bool{
 	"/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo": true,
 }
 
+const SessionMetadataKey = "session-uuid"
+
 func AuthIncomingInterceptor(iamClient IAMClient) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		// Пропускаем аутентификацию для публичных методов
@@ -29,7 +31,7 @@ func AuthIncomingInterceptor(iamClient IAMClient) grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Unauthenticated, "отсутствует metadata")
 		}
 
-		sessionUuids := md.Get("session-uuid")
+		sessionUuids := md.Get(SessionMetadataKey)
 		if len(sessionUuids) == 0 || sessionUuids[0] == "" {
 			return nil, status.Error(codes.Unauthenticated, "отсутствует session-uuid")
 		}

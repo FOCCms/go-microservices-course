@@ -172,7 +172,7 @@ tasks:
   test:iam:api:
     desc: "Запускает API-тесты iam"
     cmds:
-      - task
+      - go test -v -tags=apitest -count=1 ./iam/tests/...
 
   mockery:install:
     desc: "Устанавливает mockery"

@@ -41,7 +41,7 @@ func ProducerSessionHeaders(ctx context.Context) []kafka.Header {
 // ConsumerSession — Kafka middleware, которое читает session-uuid из заголовков
 // сообщения и кладёт его в context перед вызовом основного обработчика.
 //
-// Зачем: SessionForwarder gRPC-клиента (см. order/internal/interceptor/auth.go)
+// Зачем: AuthOutgoingInterceptor gRPC-клиента (см. order/internal/interceptor/auth.go)
 // автоматически берёт session-uuid из context и пробрасывает в исходящую
 // metadata. Без этого middleware Kafka-handler получает «голый» context от
 // sarama.ConsumerGroupSession без session-uuid, и любой защищённый gRPC-вызов

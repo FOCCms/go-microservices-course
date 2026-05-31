@@ -265,7 +265,7 @@ func (d *diContainer) OrderV1API(ctx context.Context) (*orderv1.Server, error) {
 			return nil, fmt.Errorf("инициализировать хендлер: %w", err)
 		}
 		api := orderV1API.NewAPI(service)
-		d.orderV1Handler, err = orderV1API.SetupServer(api)
+		d.orderV1Handler, err = orderv1.NewServer(api, orderv1.WithErrorHandler(orderV1API.ErrorHandler))
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать хендлер: %w", err)
 		}
