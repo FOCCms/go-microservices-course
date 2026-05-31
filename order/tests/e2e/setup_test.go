@@ -32,7 +32,6 @@ import (
 	"testing"
 	"time"
 
-	orderService "github.com/FOCCms/go-microservices-course/order/internal/service/order"
 	"github.com/IBM/sarama"
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
@@ -58,6 +57,7 @@ import (
 	"github.com/FOCCms/go-microservices-course/order/internal/interceptor"
 	orderProducer "github.com/FOCCms/go-microservices-course/order/internal/producer/order_producer"
 	orderRepoPkg "github.com/FOCCms/go-microservices-course/order/internal/repository/order"
+	orderService "github.com/FOCCms/go-microservices-course/order/internal/service/order"
 	"github.com/FOCCms/go-microservices-course/order/pkg/app"
 	payApp "github.com/FOCCms/go-microservices-course/payment/pkg/app"
 	wrappedKafkaConsumer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/consumer"

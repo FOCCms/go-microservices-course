@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/IBM/sarama"
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
@@ -120,22 +121,19 @@ func (d *diContainer) OrderRepo(ctx context.Context) (orderSrv.OrderRepository, 
 
 func (d *diContainer) PaymentClient(_ context.Context) (orderSrv.PaymentClient, error) {
 	if d.paymentClient == nil {
-		paymentConn, err := grpc.NewClient(config.AppConfig().PaymentClient.Address,
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                config.AppConfig().PaymentClient.KeepaliveTime,
-				Timeout:             config.AppConfig().PaymentClient.KeepaliveTimeout,
-				PermitWithoutStream: config.AppConfig().PaymentClient.PermitWithoutStream,
-			}),
-			grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
+		cfg := config.AppConfig().PaymentClient
+		conn, err := d.newGRPCConnection(
+			"payment",
+			cfg.Address,
+			cfg.KeepaliveTime,
+			cfg.KeepaliveTimeout,
+			cfg.PermitWithoutStream,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать payment client: %w", err)
 		}
-		closer.Add("payment conn", func(_ context.Context) error {
-			return paymentConn.Close()
-		})
 
-		client := paymentv1.NewPaymentServiceClient(paymentConn)
+		client := paymentv1.NewPaymentServiceClient(conn)
 		d.paymentClient = paymentV1Client.New(client)
 	}
 	return d.paymentClient, nil
@@ -168,25 +166,50 @@ func (d *diContainer) InventoryClient(_ context.Context) (orderSrv.InventoryClie
 
 func (d *diContainer) IAMClient(_ context.Context) (middleware.IAMClient, error) {
 	if d.iamClient == nil {
-		iamConn, err := grpc.NewClient(config.AppConfig().IAMClient.Address,
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                config.AppConfig().IAMClient.KeepaliveTime,
-				Timeout:             config.AppConfig().IAMClient.KeepaliveTimeout,
-				PermitWithoutStream: config.AppConfig().IAMClient.PermitWithoutStream,
-			}),
-			grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
+		cfg := config.AppConfig().IAMClient
+
+		conn, err := d.newGRPCConnection(
+			"iam",
+			cfg.Address,
+			cfg.KeepaliveTime,
+			cfg.KeepaliveTimeout,
+			cfg.PermitWithoutStream,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать iam client: %w", err)
 		}
-		closer.Add("iam conn", func(_ context.Context) error {
-			return iamConn.Close()
-		})
 
-		client := authv1.NewAuthServiceClient(iamConn)
+		client := authv1.NewAuthServiceClient(conn)
 		d.iamClient = iamV1Client.New(client)
 	}
 	return d.iamClient, nil
+}
+
+func (d *diContainer) newGRPCConnection(
+	name string,
+	address string,
+	keepaliveTime time.Duration,
+	keepaliveTimeout time.Duration,
+	permitWithoutStream bool,
+) (*grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                keepaliveTime,
+			Timeout:             keepaliveTimeout,
+			PermitWithoutStream: permitWithoutStream,
+		}),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("инициализировать %s conn: %w", name, err)
+	}
+
+	closer.Add(name+" conn", func(_ context.Context) error {
+		return conn.Close()
+	})
+
+	return conn, nil
 }
 
 func (d *diContainer) SyncProducer() (sarama.SyncProducer, error) {

@@ -7,17 +7,18 @@ import (
 	"log/slog"
 	"net/http"
 
-	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
 	"github.com/ogen-go/ogen/ogenerrors"
+
+	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
 )
 
-// errorResponse представляет JSON-ответ с ошибкой
+// errorResponse представляет JSON-ответ с ошибкой.
 type errorResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
-// ErrorHandler маппит доменные ошибки в HTTP-ответы
+// ErrorHandler маппит доменные ошибки в HTTP-ответы.
 func ErrorHandler(ctx context.Context, w http.ResponseWriter, _ *http.Request, err error) {
 	code, message := mapError(err)
 

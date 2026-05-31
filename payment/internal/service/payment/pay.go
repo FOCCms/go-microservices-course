@@ -15,7 +15,7 @@ import (
 
 // PayOrder обрабатывает оплату заказа.
 func (*service) Pay(ctx context.Context, req model.PayRequest) (string, error) {
-	ctx, span := otel.Tracer("payment-service").Start(ctx, "payment.Pay")
+	_, span := otel.Tracer("payment-service").Start(ctx, "payment.Pay")
 	defer span.End()
 
 	span.SetAttributes(

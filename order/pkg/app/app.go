@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	orderV1API "github.com/FOCCms/go-microservices-course/order/internal/api/order/v1"
 	iamV1Client "github.com/FOCCms/go-microservices-course/order/internal/client/grpc/iam/v1"
 	invetntoryV1Client "github.com/FOCCms/go-microservices-course/order/internal/client/grpc/inventory/v1"
@@ -16,7 +18,6 @@ import (
 	authv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/auth/v1"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 	paymentv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/payment/v1"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type noopProducer struct{}

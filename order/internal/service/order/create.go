@@ -48,6 +48,33 @@ func (s *Service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 		return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrUnauthorized)
 	}
 
+	order, err := s.createOrderTx(ctx, req, userUuid)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return model.Order{}, err
+	}
+
+	span.SetAttributes(
+		attribute.String("order.uuid", order.UUID.String()),
+		attribute.Int64("order.total_price", order.TotalPrice),
+		attribute.String("order.status", string(order.Status)),
+	)
+	span.SetStatus(codes.Ok, "заказ успешно создан")
+
+	slog.Info("заказ успешно создан",
+		slog.String("order_uuid", order.UUID.String()),
+		slog.String("user_uuid", order.UserUUID.String()),
+		slog.Int64("total_price", order.TotalPrice),
+		slog.String("status", string(order.Status)),
+		slog.Any("part_uuids", req.AssemblePartUUIDs()),
+	)
+	ordersCreatedTotal.Add(ctx, 1)
+
+	return order, nil
+}
+
+func (s *Service) createOrderTx(ctx context.Context, req model.CreateOrderRequest, userUuid uuid.UUID) (model.Order, error) {
 	var order model.Order
 
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
@@ -105,26 +132,8 @@ func (s *Service) Create(ctx context.Context, req model.CreateOrderRequest) (mod
 		return nil
 	})
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return model.Order{}, err
 	}
-
-	span.SetAttributes(
-		attribute.String("order.uuid", order.UUID.String()),
-		attribute.Int64("order.total_price", order.TotalPrice),
-		attribute.String("order.status", string(order.Status)),
-	)
-	span.SetStatus(codes.Ok, "заказ успешно создан")
-
-	slog.Info("заказ успешно создан",
-		slog.String("order_uuid", order.UUID.String()),
-		slog.String("user_uuid", order.UserUUID.String()),
-		slog.Int64("total_price", order.TotalPrice),
-		slog.String("status", string(order.Status)),
-		slog.Any("part_uuids", req.AssemblePartUUIDs()),
-	)
-	ordersCreatedTotal.Add(ctx, 1)
 
 	return order, nil
 }
