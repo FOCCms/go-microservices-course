@@ -9,10 +9,14 @@ import (
 	"os/signal"
 	"syscall"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
 	"github.com/FOCCms/go-microservices-course/order/internal/config"
 	"github.com/FOCCms/go-microservices-course/order/internal/middleware"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/logger"
+	"github.com/FOCCms/go-microservices-course/platform/pkg/metrics"
+	"github.com/FOCCms/go-microservices-course/platform/pkg/tracing"
 )
 
 type App struct {
@@ -32,9 +36,36 @@ func New(ctx context.Context) *App {
 func (a *App) initDeps(ctx context.Context) error {
 	a.initDI(ctx)
 	a.initLogger(ctx)
+	a.initMetrics(ctx)
+
+	if err := a.initTracing(ctx); err != nil {
+		return err
+	}
 	if err := a.initHTTPServer(ctx); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (a *App) initMetrics(_ context.Context) {
+	metrics.Init(config.AppConfig().OtelConfig.ServiceName)
+}
+
+func (a *App) initTracing(ctx context.Context) error {
+	shutdown, err := tracing.InitTracer(ctx, tracing.Config{
+		CollectorEndpoint: config.AppConfig().OtelConfig.Endpoint,
+		ServiceName:       config.AppConfig().OtelConfig.ServiceName,
+		Environment:       config.AppConfig().Stage,
+		ServiceVersion:    config.AppConfig().ServiceVersion,
+		SamplingRatio:     config.AppConfig().TracingConfig.SamplingRatio,
+	})
+	if err != nil {
+		return fmt.Errorf("инициализировать tracing: %w", err)
+	}
+	closer.Add("tracing", func(ctx context.Context) error {
+		return shutdown(ctx)
+	})
+
 	return nil
 }
 
@@ -64,10 +95,11 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("инициализировать http сервер: %w", err)
 	}
-
 	authMiddleware := middleware.AuthMiddleware(iamClient)
 
-	handler := middleware.ErrorsMiddleware(authMiddleware(orderServer))
+	handler := authMiddleware(orderServer)
+	handler = middleware.ErrorsMiddleware(handler)
+	handler = otelhttp.NewHandler(handler, config.AppConfig().OtelConfig.ServiceName)
 
 	a.httpServer = &http.Server{
 		Addr:              config.AppConfig().HTTP.Addr(),

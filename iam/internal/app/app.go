@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
@@ -18,6 +19,7 @@ import (
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/grpc/health"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/logger"
+	"github.com/FOCCms/go-microservices-course/platform/pkg/tracing"
 	authv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/auth/v1"
 	userv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/user/v1"
 )
@@ -57,12 +59,33 @@ func (a *App) initDeps(ctx context.Context) error {
 	a.initDI(ctx)
 	a.initLogger(ctx)
 
+	if err := a.initTracing(ctx); err != nil {
+		return err
+	}
 	if err := a.initListener(ctx); err != nil {
 		return err
 	}
 	if err := a.initGRPCServer(ctx); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (a *App) initTracing(ctx context.Context) error {
+	shutdown, err := tracing.InitTracer(ctx, tracing.Config{
+		CollectorEndpoint: config.AppConfig().OtelConfig.Endpoint,
+		ServiceName:       config.AppConfig().OtelConfig.ServiceName,
+		Environment:       config.AppConfig().Stage,
+		ServiceVersion:    config.AppConfig().ServiceVersion,
+		SamplingRatio:     config.AppConfig().TracingConfig.SamplingRatio,
+	})
+	if err != nil {
+		return fmt.Errorf("инициализировать tracing: %w", err)
+	}
+	closer.Add("tracing", func(ctx context.Context) error {
+		return shutdown(ctx)
+	})
+
 	return nil
 }
 
@@ -107,7 +130,8 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             config.AppConfig().GRPC.MinPingInterval,
 			PermitWithoutStream: true,
-		}))
+		}),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()))
 	opts = append(opts, Interceptors()...)
 
 	a.grpcServer = grpc.NewServer(opts...)

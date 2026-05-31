@@ -6,12 +6,22 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 )
 
 func (s *Service) Cancel(ctx context.Context, id uuid.UUID) error {
+	ctx, span := otel.Tracer("order-service").Start(ctx, "order.Cancel")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("order.uuid", id.String()),
+	)
+
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
 		order, err := s.orderRepository.GetForUpdate(ctx, id.String())
 		if err != nil {
@@ -39,9 +49,19 @@ func (s *Service) Cancel(ctx context.Context, id uuid.UUID) error {
 			slog.Any("released_part_uuids", order.AssemblePartUUIDs()),
 		)
 
+		span.SetAttributes(
+			attribute.String("order.status", string(order.Status)))
+		span.SetStatus(codes.Ok, "заказ успешно отменен")
+
 		return nil
 	})
-	return err
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func checkCancelStatus(status model.OrderStatus) error {
