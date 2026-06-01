@@ -18,9 +18,12 @@ func (s *service) Reserve(ctx context.Context, uuids []string) error {
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.StringSlice("inventory.reserve_uuids", uuids),
 		attribute.Int("inventory.requested_count", len(uuids)),
 	)
+
+	if len(uuids) <= 10 {
+		span.SetAttributes(attribute.StringSlice("inventory.reserve_uuids", uuids))
+	}
 
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
 		parts, err := s.listForUpdate(ctx, valueobject.PartFilter{
@@ -32,9 +35,7 @@ func (s *service) Reserve(ctx context.Context, uuids []string) error {
 
 		for i := range parts {
 			if err = parts[i].Reserve(); err != nil {
-				span.RecordError(errs.ErrOutOfStock)
-				span.SetStatus(codes.Error, fmt.Sprintf("деталь %s отсутствует на складе", parts[i].UUID()))
-				return fmt.Errorf("зарезервировать детали: %w", errs.ErrOutOfStock)
+				return fmt.Errorf("зарезервировать детали (деталь %s): %w", parts[i].UUID(), errs.ErrOutOfStock)
 			}
 		}
 

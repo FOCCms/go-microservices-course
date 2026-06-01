@@ -17,9 +17,12 @@ func (s *service) Release(ctx context.Context, uuids []string) error {
 	defer span.End()
 
 	span.SetAttributes(
-		attribute.StringSlice("inventory.release_uuids", uuids),
 		attribute.Int("inventory.requested_count", len(uuids)),
 	)
+
+	if len(uuids) <= 10 {
+		span.SetAttributes(attribute.StringSlice("inventory.release_uuids", uuids))
+	}
 
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
 		parts, err := s.listForUpdate(ctx, valueobject.PartFilter{
