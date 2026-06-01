@@ -39,8 +39,8 @@ func (a *App) Run() error {
 }
 
 func (a *App) initDeps(ctx context.Context) {
-	a.initDI(ctx)
 	a.initLogger(ctx)
+	a.initDI(ctx)
 }
 
 func (a *App) initDI(_ context.Context) {

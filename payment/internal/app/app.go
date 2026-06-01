@@ -58,12 +58,11 @@ func (a *App) Run() error {
 }
 
 func (a *App) initDeps(ctx context.Context) error {
-	a.initDI(ctx)
 	a.initLogger(ctx)
-
 	if err := a.initTracing(ctx); err != nil {
 		return err
 	}
+	a.initDI(ctx)
 	if err := a.initListener(ctx); err != nil {
 		return err
 	}

@@ -34,13 +34,12 @@ func New(ctx context.Context) *App {
 }
 
 func (a *App) initDeps(ctx context.Context) error {
-	a.initDI(ctx)
 	a.initLogger(ctx)
-	a.initMetrics(ctx)
-
 	if err := a.initTracing(ctx); err != nil {
 		return err
 	}
+	a.initMetrics(ctx)
+	a.initDI(ctx)
 	if err := a.initHTTPServer(ctx); err != nil {
 		return err
 	}
