@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/FOCCms/go-microservices-course/order/internal/converter"
@@ -13,6 +14,9 @@ import (
 func (a *api) PayOrder(ctx context.Context, req *orderv1.PayOrderRequest, params orderv1.PayOrderParams) (orderv1.PayOrderRes, error) {
 	transactionUUID, err := a.orderService.Pay(ctx, params.OrderUUID, converter.ToPaymentMethod(req.GetPaymentMethod()))
 	if err != nil {
+		slog.Error("не удалось оплатить заказ",
+			slog.String("error", err.Error()),
+		)
 		if errors.Is(err, errs.ErrOrderNotFound) {
 			return &orderv1.PayOrderNotFound{
 				Code:    http.StatusNotFound,

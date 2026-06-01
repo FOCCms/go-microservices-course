@@ -7,6 +7,7 @@ import (
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -135,7 +136,8 @@ func (d *diContainer) IAMClient(_ context.Context) (interceptor.IAMClient, error
 				Time:                config.AppConfig().IAMClient.KeepaliveTime,
 				Timeout:             config.AppConfig().IAMClient.KeepaliveTimeout,
 				PermitWithoutStream: config.AppConfig().IAMClient.PermitWithoutStream,
-			}))
+			}),
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать iam client: %w", err)
 		}

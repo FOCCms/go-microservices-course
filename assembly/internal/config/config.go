@@ -10,10 +10,13 @@ import (
 )
 
 type Config struct {
+	Stage                 string                      `yaml:"stage"`
 	Kafka                 kafkaConfig                 `yaml:"kafka"`
 	OrderPaidConsumer     orderPaidConsumerConfig     `yaml:"order_paid_consumer"`
 	ShipAssembledProducer shipAssembledProducerConfig `yaml:"ship_assembled_producer"`
 	ShutdownConfig        ShutdownConfig              `yaml:"shutdown_config"`
+	Logger                loggerConfig                `yaml:"logger"`
+	OtelConfig            otelConfig                  `yaml:"otel"`
 }
 
 var appConfig *Config

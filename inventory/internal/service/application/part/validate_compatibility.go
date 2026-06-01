@@ -4,28 +4,56 @@ import (
 	"context"
 	"fmt"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/model/entity"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/model/valueobject"
 )
 
 func (s *service) ValidateCompatibility(ctx context.Context, slots model.ShipSlots) error {
+	ctx, span := otel.Tracer("inventory-service").Start(ctx, "inventory.ValidateCompatibility")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("ship.hull_uuid", slots.Hull),
+		attribute.String("ship.engine_uuid", slots.Engine),
+		attribute.String("ship.shield_uuid", slots.Shield),
+		attribute.String("ship.weapon_uuid", slots.Weapon),
+	)
+
 	if err := checkUUIDSNonUnique(slots.List()); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "повторяющиеся uuid деталей")
 		return fmt.Errorf("проверить совместимость деталей: %w", err)
 	}
 
 	parts, err := s.List(ctx, valueobject.PartFilter{UUIDs: slots.List()})
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("проверить совместимость деталей: %w", err)
 	}
 
 	resolved := getResolvedShipSlots(parts, slots)
 
 	if err = checkSlotType(resolved); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "детали несовместимы со слотами")
 		return fmt.Errorf("проверить совместимость деталей: %w", err)
 	}
 
-	return s.compatibilityChecker.Check(resolved)
+	if err = s.compatibilityChecker.Check(resolved); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return fmt.Errorf("проверить совместимость деталей: %w", err)
+	}
+
+	span.SetStatus(codes.Ok, "конфигурация корабля валидна и совместима")
+
+	return nil
 }
 
 func getResolvedShipSlots(parts []model.Part, slots model.ShipSlots) model.ResolvedShipSlots {

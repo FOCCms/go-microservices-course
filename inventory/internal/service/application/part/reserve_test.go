@@ -39,7 +39,7 @@ func TestReserve(t *testing.T) {
 			name:  "успешное резервирование",
 			uuids: uuids,
 			setupMock: func(repo *mocks.PartRepository, tx *mocks.TxManager) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
@@ -50,12 +50,12 @@ func TestReserve(t *testing.T) {
 					model.RestorePart(partID, "Корпус", "", "", 10, 10, 0, valueobject.PartProperties{}, anyTime),
 				}
 
-				repo.EXPECT().ListForUpdate(ctx, mock.MatchedBy(func(f record.PartFilter) bool {
+				repo.EXPECT().ListForUpdate(mock.Anything, mock.MatchedBy(func(f record.PartFilter) bool {
 					return len(f.UUIDs) == 1 && f.UUIDs[0] == partID
 				})).Return(parts, nil)
 
 				// 2. Проверяем, что в репозиторий ушла деталь с инкрементированным резервом (0 -> 1)
-				repo.EXPECT().UpdateReservationsBatch(ctx, mock.MatchedBy(func(p []model.Part) bool {
+				repo.EXPECT().UpdateReservationsBatch(mock.Anything, mock.MatchedBy(func(p []model.Part) bool {
 					return len(p) == 1 && p[0].Reserved() == 1
 				})).Return(nil)
 			},
@@ -65,13 +65,13 @@ func TestReserve(t *testing.T) {
 			name:  "ошибка: List вернул ошибку",
 			uuids: uuids,
 			setupMock: func(repo *mocks.PartRepository, tx *mocks.TxManager) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(errors.New("db connection lost"))
 
-				repo.EXPECT().ListForUpdate(ctx, mock.Anything).Return(nil, errors.New("db connection lost"))
+				repo.EXPECT().ListForUpdate(mock.Anything, mock.Anything).Return(nil, errors.New("db connection lost"))
 			},
 			wantErr: errors.New("db connection lost"),
 		},
@@ -79,7 +79,7 @@ func TestReserve(t *testing.T) {
 			name:  "ошибка: недостаточно товара на складе (ErrOutOfStock)",
 			uuids: uuids,
 			setupMock: func(repo *mocks.PartRepository, tx *mocks.TxManager) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
@@ -89,7 +89,7 @@ func TestReserve(t *testing.T) {
 				parts := []model.Part{
 					model.RestorePart(partID, "Лазер", "", "", 10, 0, 0, valueobject.PartProperties{}, anyTime),
 				}
-				repo.EXPECT().ListForUpdate(ctx, mock.Anything).Return(parts, nil)
+				repo.EXPECT().ListForUpdate(mock.Anything, mock.Anything).Return(parts, nil)
 
 				// UpdateReservedBatch не вызывается
 			},
@@ -99,7 +99,7 @@ func TestReserve(t *testing.T) {
 			name:  "ошибка: сбой при пакетном обновлении",
 			uuids: uuids,
 			setupMock: func(repo *mocks.PartRepository, tx *mocks.TxManager) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
@@ -108,8 +108,8 @@ func TestReserve(t *testing.T) {
 				parts := []model.Part{
 					model.RestorePart(partID, "Двигатель", "", "", 10, 10, 0, valueobject.PartProperties{}, anyTime),
 				}
-				repo.EXPECT().ListForUpdate(ctx, mock.Anything).Return(parts, nil)
-				repo.EXPECT().UpdateReservationsBatch(ctx, mock.Anything).Return(errors.New("db write error"))
+				repo.EXPECT().ListForUpdate(mock.Anything, mock.Anything).Return(parts, nil)
+				repo.EXPECT().UpdateReservationsBatch(mock.Anything, mock.Anything).Return(errors.New("db write error"))
 			},
 			wantErr: errors.New("db write error"),
 		},

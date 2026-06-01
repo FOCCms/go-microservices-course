@@ -37,22 +37,22 @@ func TestCancel(t *testing.T) {
 			name: "успешная отмена заказа",
 			args: args{id: orderID},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(nil)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID).
+					GetForUpdate(mock.Anything, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPendingPayment}, nil)
 
 				client.EXPECT().
-					ReleaseParts(ctx, mock.Anything).
+					ReleaseParts(mock.Anything, mock.Anything).
 					Return(nil)
 
 				repo.EXPECT().
-					Update(ctx, mock.MatchedBy(func(o model.Order) bool {
+					Update(mock.Anything, mock.MatchedBy(func(o model.Order) bool {
 						return o.Status == model.OrderStatusCancelled
 					})).
 					Return(nil)
@@ -63,14 +63,14 @@ func TestCancel(t *testing.T) {
 			name: "ошибка: заказ уже оплачен",
 			args: args{id: orderID},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(errs.ErrOrderAlreadyPaid)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID).
+					GetForUpdate(mock.Anything, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusPaid}, nil)
 			},
 			expectedErr: errs.ErrOrderAlreadyPaid,
@@ -79,14 +79,14 @@ func TestCancel(t *testing.T) {
 			name: "ошибка: заказ уже отменен",
 			args: args{id: orderID},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(errs.ErrOrderCancelled)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID).
+					GetForUpdate(mock.Anything, orderID).
 					Return(model.Order{UUID: uuid.MustParse(orderID), Status: model.OrderStatusCancelled}, nil)
 			},
 			expectedErr: errs.ErrOrderCancelled,
@@ -95,14 +95,14 @@ func TestCancel(t *testing.T) {
 			name: "ошибка: заказ не найден",
 			args: args{id: orderID},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.InventoryClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(errs.ErrOrderNotFound)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID).
+					GetForUpdate(mock.Anything, orderID).
 					Return(model.Order{}, errs.ErrOrderNotFound)
 			},
 			expectedErr: errs.ErrOrderNotFound,

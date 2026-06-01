@@ -1,3 +1,13 @@
+stage: "development"
+service_version: "0.0.1"
+
 grpc:
   host: "localhost"
   port: "50052"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "payment-service"
+
+tracing_config:
+  sampling_ratio: 1.0

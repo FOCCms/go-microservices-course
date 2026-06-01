@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/FOCCms/go-microservices-course/order/internal/converter"
@@ -14,6 +15,9 @@ func (a *api) CreateOrder(ctx context.Context, req *orderv1.CreateOrderRequest) 
 	r := converter.ToCreateOrderRequest(*req)
 	order, err := a.orderService.Create(ctx, r)
 	if err != nil {
+		slog.Error("не удалось создать заказ",
+			slog.String("error", err.Error()),
+		)
 		if errors.Is(err, errs.ErrPartNotFound) {
 			return &orderv1.CreateOrderNotFound{
 				Code:    http.StatusNotFound,

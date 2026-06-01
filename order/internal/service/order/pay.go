@@ -3,15 +3,30 @@ package order
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 )
 
 func (s *Service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMethod) (uuid.UUID, error) {
+	ctx, span := otel.Tracer("order-service").Start(ctx, "order.Pay")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("order.uuid", id.String()),
+		attribute.String("order.payment_method", string(method)),
+	)
+
 	var transactionUUID uuid.UUID
+
+	slog.Info("оплата заказа: старт", slog.String("order_uuid", id.String()))
+
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
 		order, err := s.orderRepository.GetForUpdate(ctx, id.String())
 		if err != nil {
@@ -45,8 +60,27 @@ func (s *Service) Pay(ctx context.Context, id uuid.UUID, method model.PaymentMet
 			return fmt.Errorf("оплатить заказ: %w", err)
 		}
 
+		slog.Info("оплата заказа: успешно",
+			slog.String("order_uuid", id.String()),
+			slog.String("user_uuid", order.UserUUID.String()),
+			slog.String("payment_method", string(method)),
+			slog.Int64("total_price", order.TotalPrice),
+			slog.String("transaction_uuid", transactionUUID.String()),
+		)
+
+		ordersPaidTotal.Add(ctx, 1)
+		ordersRevenueTotal.Add(ctx, order.TotalPrice)
+
+		span.SetAttributes(attribute.String("order.transaction_uuid", transactionUUID.String()))
+		span.SetStatus(codes.Ok, "оплата заказа: успешно")
+
 		return nil
 	})
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return uuid.Nil, err
+	}
 
 	return transactionUUID, err
 }

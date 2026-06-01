@@ -39,7 +39,7 @@ func TestRelease(t *testing.T) {
 			name:  "успешное освобождение",
 			uuids: uuids,
 			setupMock: func(repo *mocks.PartRepository, tx *mocks.TxManager) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
@@ -50,12 +50,12 @@ func TestRelease(t *testing.T) {
 					model.RestorePart(partID, "Тестовая деталь", "", "", 10, 1, 1, valueobject.PartProperties{}, anyTime),
 				}
 
-				repo.EXPECT().ListForUpdate(ctx, mock.MatchedBy(func(f record.PartFilter) bool {
+				repo.EXPECT().ListForUpdate(mock.Anything, mock.MatchedBy(func(f record.PartFilter) bool {
 					return len(f.UUIDs) == 1 && f.UUIDs[0] == partID
 				})).Return(parts, nil)
 
 				// 2. Проверяем, что в репозиторий ушла деталь с обновленным резервом (1 -> 0)
-				repo.EXPECT().UpdateReservationsBatch(ctx, mock.MatchedBy(func(p []model.Part) bool {
+				repo.EXPECT().UpdateReservationsBatch(mock.Anything, mock.MatchedBy(func(p []model.Part) bool {
 					return len(p) == 1 && p[0].Reserved() == 0
 				})).Return(nil)
 			},
@@ -66,13 +66,13 @@ func TestRelease(t *testing.T) {
 			uuids: uuids,
 			setupMock: func(repo *mocks.PartRepository, tx *mocks.TxManager) {
 				// var err error
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(errors.New("db error"))
 
-				repo.EXPECT().ListForUpdate(ctx, mock.Anything).Return(nil, errors.New("db error"))
+				repo.EXPECT().ListForUpdate(mock.Anything, mock.Anything).Return(nil, errors.New("db error"))
 			},
 			wantErr: errors.New("db error"),
 		},
@@ -80,7 +80,7 @@ func TestRelease(t *testing.T) {
 			name:  "ошибка: нечего освобождать (Release() вернул ошибку)",
 			uuids: uuids,
 			setupMock: func(repo *mocks.PartRepository, tx *mocks.TxManager) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
@@ -90,7 +90,7 @@ func TestRelease(t *testing.T) {
 				parts := []model.Part{
 					model.RestorePart(partID, "Двигатель", "", "", 10, 1, 0, valueobject.PartProperties{}, anyTime),
 				}
-				repo.EXPECT().ListForUpdate(ctx, mock.Anything).Return(parts, nil)
+				repo.EXPECT().ListForUpdate(mock.Anything, mock.Anything).Return(parts, nil)
 
 				// UpdateReservedBatch не должен вызваться, так как цикл прервется на ошибке
 			},
@@ -100,7 +100,7 @@ func TestRelease(t *testing.T) {
 			name:  "ошибка: сбой при сохранении в базу",
 			uuids: uuids,
 			setupMock: func(repo *mocks.PartRepository, tx *mocks.TxManager) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
@@ -109,8 +109,8 @@ func TestRelease(t *testing.T) {
 				parts := []model.Part{
 					model.RestorePart(partID, "Двигатель", "", "", 10, 1, 1, valueobject.PartProperties{}, anyTime),
 				}
-				repo.EXPECT().ListForUpdate(ctx, mock.Anything).Return(parts, nil)
-				repo.EXPECT().UpdateReservationsBatch(ctx, mock.Anything).Return(errors.New("ошибка обновления"))
+				repo.EXPECT().ListForUpdate(mock.Anything, mock.Anything).Return(parts, nil)
+				repo.EXPECT().UpdateReservationsBatch(mock.Anything, mock.Anything).Return(errors.New("ошибка обновления"))
 			},
 			wantErr: errors.New("ошибка обновления"),
 		},

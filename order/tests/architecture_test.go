@@ -1,3 +1,5 @@
+//go:build apitest
+
 package tests
 
 import (
@@ -172,6 +174,7 @@ func TestArch_DomainError_InvalidPaymentMethod_Returns400(t *testing.T) {
 		orderBaseURL()+"/api/v1/orders/"+created.OrderUUID+"/pay",
 		bytes.NewReader(body))
 	require.NoError(t, err)
+	httpReq.Header.Set("Authorization", "Bearer "+defaultSessionUUID)
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := httpClient.Do(httpReq)
@@ -183,7 +186,10 @@ func TestArch_DomainError_InvalidPaymentMethod_Returns400(t *testing.T) {
 }
 
 func TestArch_DomainError_InvalidUUIDInPath_Returns400(t *testing.T) {
-	resp, err := httpClient.Get(orderBaseURL() + "/api/v1/orders/not-a-uuid")
+	httpReq, err := http.NewRequest(http.MethodGet, orderBaseURL()+"/api/v1/orders/not-a-uuid", nil)
+	require.NoError(t, err)
+	httpReq.Header.Set("Authorization", "Bearer "+defaultSessionUUID)
+	resp, err := httpClient.Do(httpReq)
 	require.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode,

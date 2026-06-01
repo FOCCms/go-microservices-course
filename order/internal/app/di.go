@@ -3,11 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/IBM/sarama"
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
@@ -119,21 +121,19 @@ func (d *diContainer) OrderRepo(ctx context.Context) (orderSrv.OrderRepository, 
 
 func (d *diContainer) PaymentClient(_ context.Context) (orderSrv.PaymentClient, error) {
 	if d.paymentClient == nil {
-		paymentConn, err := grpc.NewClient(config.AppConfig().PaymentClient.Address,
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                config.AppConfig().PaymentClient.KeepaliveTime,
-				Timeout:             config.AppConfig().PaymentClient.KeepaliveTimeout,
-				PermitWithoutStream: config.AppConfig().PaymentClient.PermitWithoutStream,
-			}))
+		cfg := config.AppConfig().PaymentClient
+		conn, err := d.newGRPCConnection(
+			"payment",
+			cfg.Address,
+			cfg.KeepaliveTime,
+			cfg.KeepaliveTimeout,
+			cfg.PermitWithoutStream,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать payment client: %w", err)
 		}
-		closer.Add("payment conn", func(_ context.Context) error {
-			return paymentConn.Close()
-		})
 
-		client := paymentv1.NewPaymentServiceClient(paymentConn)
+		client := paymentv1.NewPaymentServiceClient(conn)
 		d.paymentClient = paymentV1Client.New(client)
 	}
 	return d.paymentClient, nil
@@ -148,6 +148,7 @@ func (d *diContainer) InventoryClient(_ context.Context) (orderSrv.InventoryClie
 				Timeout:             config.AppConfig().InventoryClient.KeepaliveTimeout,
 				PermitWithoutStream: config.AppConfig().InventoryClient.PermitWithoutStream,
 			}),
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 			grpc.WithChainUnaryInterceptor(
 				interceptor.AuthOutgoingInterceptor()))
 		if err != nil {
@@ -165,24 +166,50 @@ func (d *diContainer) InventoryClient(_ context.Context) (orderSrv.InventoryClie
 
 func (d *diContainer) IAMClient(_ context.Context) (middleware.IAMClient, error) {
 	if d.iamClient == nil {
-		iamConn, err := grpc.NewClient(config.AppConfig().IAMClient.Address,
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                config.AppConfig().IAMClient.KeepaliveTime,
-				Timeout:             config.AppConfig().IAMClient.KeepaliveTimeout,
-				PermitWithoutStream: config.AppConfig().IAMClient.PermitWithoutStream,
-			}))
+		cfg := config.AppConfig().IAMClient
+
+		conn, err := d.newGRPCConnection(
+			"iam",
+			cfg.Address,
+			cfg.KeepaliveTime,
+			cfg.KeepaliveTimeout,
+			cfg.PermitWithoutStream,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать iam client: %w", err)
 		}
-		closer.Add("iam conn", func(_ context.Context) error {
-			return iamConn.Close()
-		})
 
-		client := authv1.NewAuthServiceClient(iamConn)
+		client := authv1.NewAuthServiceClient(conn)
 		d.iamClient = iamV1Client.New(client)
 	}
 	return d.iamClient, nil
+}
+
+func (d *diContainer) newGRPCConnection(
+	name string,
+	address string,
+	keepaliveTime time.Duration,
+	keepaliveTimeout time.Duration,
+	permitWithoutStream bool,
+) (*grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                keepaliveTime,
+			Timeout:             keepaliveTimeout,
+			PermitWithoutStream: permitWithoutStream,
+		}),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("инициализировать %s conn: %w", name, err)
+	}
+
+	closer.Add(name+" conn", func(_ context.Context) error {
+		return conn.Close()
+	})
+
+	return conn, nil
 }
 
 func (d *diContainer) SyncProducer() (sarama.SyncProducer, error) {
@@ -261,7 +288,7 @@ func (d *diContainer) OrderV1API(ctx context.Context) (*orderv1.Server, error) {
 			return nil, fmt.Errorf("инициализировать хендлер: %w", err)
 		}
 		api := orderV1API.NewAPI(service)
-		d.orderV1Handler, err = orderV1API.SetupServer(api)
+		d.orderV1Handler, err = orderv1.NewServer(api, orderv1.WithErrorHandler(orderV1API.ErrorHandler))
 		if err != nil {
 			return nil, fmt.Errorf("инициализировать хендлер: %w", err)
 		}
@@ -303,6 +330,7 @@ func (d *diContainer) ShipAssembledConsumer() (assemblyConsumer.Consumer, error)
 			},
 			wrappedKafkaConsumer.WithMiddlewares(
 				kafkaMiddleware.ConsumerLogging(),
+				kafkaMiddleware.ConsumerSession(),
 			),
 		)
 	}

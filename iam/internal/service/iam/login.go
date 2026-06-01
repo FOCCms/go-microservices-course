@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,9 @@ func (s *Service) Login(ctx context.Context, input input.LoginInput) (uuid.UUID,
 	user, err := s.userRepository.GetByLogin(ctx, input.Login)
 	if err != nil {
 		if errors.Is(err, errs.ErrUserNotFound) {
+			slog.Warn("неудачная попытка входа: пользователь не найден",
+				slog.String("login", input.Login),
+			)
 			return uuid.Nil, fmt.Errorf("залогинить пользователя: %w", errs.ErrInvalidCredentials)
 		}
 		return uuid.Nil, fmt.Errorf("залогинить пользователя: %w", err)
@@ -29,6 +33,10 @@ func (s *Service) Login(ctx context.Context, input input.LoginInput) (uuid.UUID,
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(input.Password))
 	if err != nil {
+		slog.Warn("неудачная попытка входа: неверный пароль",
+			slog.String("user_uuid", user.UUID.String()),
+			slog.String("login", user.Login),
+		)
 		return uuid.Nil, fmt.Errorf("залогинить пользователя: %w", errs.ErrInvalidCredentials)
 	}
 
@@ -45,6 +53,12 @@ func (s *Service) Login(ctx context.Context, input input.LoginInput) (uuid.UUID,
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("залогинить пользователя: %w", err)
 	}
+
+	slog.Info("пользователь успешно залогинен",
+		slog.String("user_uuid", user.UUID.String()),
+		slog.String("login", user.Login),
+		slog.String("session_uuid", session.UUID.String()),
+	)
 
 	return session.UUID, nil
 }

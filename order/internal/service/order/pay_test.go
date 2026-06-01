@@ -42,28 +42,28 @@ func TestPay(t *testing.T) {
 				method model.PaymentMethod
 			}{id: orderID, method: paymentMethod},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.PaymentClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(nil)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID.String()).
+					GetForUpdate(mock.Anything, orderID.String()).
 					Return(model.Order{UUID: orderID, Status: model.OrderStatusPendingPayment}, nil)
 
 				client.EXPECT().
-					PayOrder(ctx, orderID, paymentMethod).
+					PayOrder(mock.Anything, orderID, paymentMethod).
 					Return(transactionUUID, nil)
 
 				repo.EXPECT().
-					Update(ctx, mock.MatchedBy(func(o model.Order) bool {
+					Update(mock.Anything, mock.MatchedBy(func(o model.Order) bool {
 						return o.Status == model.OrderStatusPaid && *o.TransactionUUID == transactionUUID
 					})).
 					Return(nil)
 
 				producer.EXPECT().
-					ProduceOrderPaid(ctx, mock.Anything).
+					ProduceOrderPaid(mock.Anything, mock.Anything).
 					Return(nil)
 			},
 			expected:    transactionUUID,
@@ -76,18 +76,18 @@ func TestPay(t *testing.T) {
 				method model.PaymentMethod
 			}{id: orderID, method: paymentMethod},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.PaymentClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(errs.ErrOrderNotFound)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID.String()).
+					GetForUpdate(mock.Anything, orderID.String()).
 					Return(model.Order{UUID: orderID, Status: model.OrderStatusPendingPayment}, nil)
 
 				client.EXPECT().
-					PayOrder(ctx, orderID, paymentMethod).
+					PayOrder(mock.Anything, orderID, paymentMethod).
 					Return(uuid.Nil, errs.ErrOrderNotFound)
 			},
 			expected:    uuid.Nil,
@@ -100,14 +100,14 @@ func TestPay(t *testing.T) {
 				method model.PaymentMethod
 			}{id: orderID, method: paymentMethod},
 			setupMock: func(repo *mocks.OrderRepository, client *mocks.PaymentClient, tx *mocks.TxManager, producer *mocks.OrderProducerService) {
-				tx.EXPECT().Do(ctx, mock.AnythingOfType("func(context.Context) error")).
+				tx.EXPECT().Do(mock.Anything, mock.AnythingOfType("func(context.Context) error")).
 					Run(func(ctx context.Context, f func(context.Context) error) {
 						_ = f(ctx)
 					}).
 					Return(errs.ErrOrderCancelled)
 
 				repo.EXPECT().
-					GetForUpdate(ctx, orderID.String()).
+					GetForUpdate(mock.Anything, orderID.String()).
 					Return(model.Order{UUID: orderID, Status: model.OrderStatusCancelled}, nil)
 			},
 			expected:    uuid.Nil,

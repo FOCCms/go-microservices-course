@@ -8,6 +8,7 @@ import (
 
 	"github.com/FOCCms/go-microservices-course/order/internal/model"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/kafka"
+	kafkamv "github.com/FOCCms/go-microservices-course/platform/pkg/middleware/kafka"
 	eventsv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/events/v1"
 )
 
@@ -34,7 +35,8 @@ func (s *service) ProduceOrderPaid(ctx context.Context, e model.OrderPaidEvent) 
 	}
 
 	return s.orderPaidProducer.Send(ctx, &kafka.Message{
-		Key:   []byte(e.EventUUID.String()),
-		Value: payload,
+		Key:     []byte(e.EventUUID.String()),
+		Value:   payload,
+		Headers: kafkamv.ProducerSessionHeaders(ctx),
 	})
 }

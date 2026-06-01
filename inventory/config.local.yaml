@@ -1,3 +1,6 @@
+stage: "development"
+service_version: "0.0.1"
+
 grpc:
   host: "localhost"
   port: "50051"
@@ -27,3 +30,10 @@ iam_client:
 
 shutdown_config:
   shutdown_timeout: "10s"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "inventory-service"
+
+tracing_config:
+  sampling_ratio: 1.0

@@ -1,3 +1,6 @@
+stage: "development"
+service_version: "0.0.1"
+
 http:
   host: "0.0.0.0"
   port: "8081"
@@ -30,14 +33,14 @@ ship_assembled_consumer_config:
 
 inventory_client:
   address: "localhost:50051"
-  keepalive_time: "30s"
-  keepalive_timeout: "3s"
+  keepalive_time: "60s"
+  keepalive_timeout: "20s"
   permit_without_stream: true
 
 payment_client:
   address: "localhost:50052"
-  keepalive_time: "30s"
-  keepalive_timeout: "3s"
+  keepalive_time: "60s"
+  keepalive_timeout: "20s"
   permit_without_stream: true
 
 iam_client:
@@ -48,3 +51,10 @@ iam_client:
 
 shutdown_config:
   shutdown_timeout: "10s"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "order-service"
+
+tracing_config:
+  sampling_ratio: 1.0

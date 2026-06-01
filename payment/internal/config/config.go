@@ -10,8 +10,12 @@ import (
 )
 
 type Config struct {
-	GRPC   grpcConfig   `yaml:"grpc"`
-	Logger loggerConfig `yaml:"logger"`
+	Stage          string        `yaml:"stage"`
+	ServiceVersion string        `yaml:"service_version"`
+	GRPC           grpcConfig    `yaml:"grpc"`
+	Logger         loggerConfig  `yaml:"logger"`
+	OtelConfig     otelConfig    `yaml:"otel"`
+	TracingConfig  tracingConfig `yaml:"tracing_config"`
 }
 
 var appConfig *Config

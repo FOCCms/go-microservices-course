@@ -9,10 +9,12 @@ import (
 	"google.golang.org/grpc"
 
 	partV1API "github.com/FOCCms/go-microservices-course/inventory/internal/api/inventory/v1"
+	iamV1Client "github.com/FOCCms/go-microservices-course/inventory/internal/client/grpc/iam/v1"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/interceptor"
 	partRepository "github.com/FOCCms/go-microservices-course/inventory/internal/repository/part"
 	partService "github.com/FOCCms/go-microservices-course/inventory/internal/service/application/part"
 	"github.com/FOCCms/go-microservices-course/inventory/internal/service/domain"
+	authv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/auth/v1"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
 )
 
@@ -28,8 +30,12 @@ func RegisterServices(grpcServer *grpc.Server, pool *pgxpool.Pool) {
 	inventoryv1.RegisterInventoryServiceServer(grpcServer, api)
 }
 
-func Interceptors() []grpc.ServerOption {
+func Interceptors(authClient authv1.AuthServiceClient) []grpc.ServerOption {
+	authInterceptor := interceptor.AuthIncomingInterceptor(iamV1Client.New(authClient))
 	return []grpc.ServerOption{
-		grpc.UnaryInterceptor(interceptor.UnaryErrorInterceptor),
+		grpc.ChainUnaryInterceptor(
+			interceptor.UnaryErrorInterceptor,
+			authInterceptor,
+		),
 	}
 }

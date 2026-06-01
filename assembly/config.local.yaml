@@ -1,3 +1,5 @@
+stage: "development"
+
 kafka:
   brokers:
     - "localhost:9092"
@@ -11,3 +13,10 @@ ship_assembled_producer:
 
 shutdown_config:
   shutdown_timeout: "10s"
+
+logger:
+  level: "info"
+
+otel:
+  endpoint: "localhost:4317"
+  service_name: "assembly-service"

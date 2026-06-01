@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	errs "github.com/FOCCms/go-microservices-course/inventory/internal/errors"
@@ -36,7 +37,7 @@ func TestGet(t *testing.T) {
 			name:  "успешное получение",
 			idStr: partID,
 			setupMock: func(repo *mocks.PartRepository) {
-				repo.EXPECT().Get(ctx, partID).Return(part, nil)
+				repo.EXPECT().Get(mock.Anything, partID).Return(part, nil)
 			},
 			expected: part,
 			err:      nil,
@@ -53,7 +54,7 @@ func TestGet(t *testing.T) {
 			name:  "ошибка: деталь не найдена в БД",
 			idStr: partID,
 			setupMock: func(repo *mocks.PartRepository) {
-				repo.EXPECT().Get(ctx, partID).Return(model.Part{}, errs.ErrPartNotFound)
+				repo.EXPECT().Get(mock.Anything, partID).Return(model.Part{}, errs.ErrPartNotFound)
 			},
 			expected: model.Part{},
 			err:      errs.ErrPartNotFound,

@@ -3,6 +3,7 @@ package assembly
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math/rand/v2"
 	"time"
 
@@ -11,6 +12,11 @@ import (
 )
 
 func (s *service) Assemble(ctx context.Context, event model.OrderPaidEvent) error {
+	slog.Info("сборка космического корабля: начало",
+		slog.String("order_uuid", event.OrderUUID.String()),
+		slog.String("user_uuid", event.UserUUID.String()),
+	)
+
 	d := randomDurationSec(1, 3)
 
 	select {
@@ -23,6 +29,11 @@ func (s *service) Assemble(ctx context.Context, event model.OrderPaidEvent) erro
 	if err != nil {
 		return fmt.Errorf("сообщить об успешной сборке корабля: %w", err)
 	}
+
+	slog.Info("сборка космического корабля: конец",
+		slog.String("order_uuid", event.OrderUUID.String()),
+		slog.Duration("assembly_duration", d),
+	)
 
 	return nil
 }

@@ -46,7 +46,7 @@ func TestList(t *testing.T) {
 			name:   "успешный список по UUID",
 			filter: valueobject.PartFilter{UUIDs: []string{partID}},
 			setupMock: func(repo *mocks.PartRepository) {
-				repo.EXPECT().List(ctx, mock.MatchedBy(func(f record.PartFilter) bool {
+				repo.EXPECT().List(mock.Anything, mock.MatchedBy(func(f record.PartFilter) bool {
 					return len(f.UUIDs) == 1 && f.UUIDs[0] == partID
 				})).Return(parts, nil)
 			},
@@ -64,7 +64,7 @@ func TestList(t *testing.T) {
 			name:   "успешная сортировка при пустых UUID",
 			filter: valueobject.PartFilter{UUIDs: []string{}, PartType: valueobject.PartTypeUnspecified},
 			setupMock: func(repo *mocks.PartRepository) {
-				repo.EXPECT().List(ctx, mock.Anything).Return(sortedParts, nil)
+				repo.EXPECT().List(mock.Anything, mock.Anything).Return(sortedParts, nil)
 			},
 			want: []model.Part{
 				model.RestorePart(partID, "Тестовый двигатель", "", "", 0, 0, 0, valueobject.PartProperties{}, anyTime),

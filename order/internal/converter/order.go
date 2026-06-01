@@ -19,6 +19,7 @@ func OrderToOrderDto(order model.Order) *orderv1.OrderDto {
 		PaymentMethod:   toOptNilPaymentMethod(order.PaymentMethod),
 		Status:          orderv1.OrderStatus(order.Status),
 		CreatedAt:       order.CreatedAt,
+		UserUUID:        order.UserUUID,
 	}
 }
 

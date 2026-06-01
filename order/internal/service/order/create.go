@@ -3,9 +3,13 @@ package order
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/FOCCms/go-microservices-course/order/internal/converter"
 	errs "github.com/FOCCms/go-microservices-course/order/internal/errors"
@@ -14,14 +18,63 @@ import (
 )
 
 func (s *Service) Create(ctx context.Context, req model.CreateOrderRequest) (model.Order, error) {
+	ctx, span := otel.Tracer("order-service").Start(ctx, "order.Create")
+	defer span.End()
+
+	var shieldStr, weaponStr string
+	if req.ShieldUUID != nil {
+		shieldStr = req.ShieldUUID.String()
+	}
+	if req.WeaponUUID != nil {
+		weaponStr = req.WeaponUUID.String()
+	}
+
+	span.SetAttributes(
+		attribute.String("order.hull_uuid", req.HullUUID.String()),
+		attribute.String("order.engine_uuid", req.EngineUUID.String()),
+		attribute.String("order.shield_uuid", shieldStr),
+		attribute.String("order.weapon_uuid", weaponStr),
+	)
+
 	if req.HullUUID == uuid.Nil || req.EngineUUID == uuid.Nil {
+		span.RecordError(errs.ErrPartRequired)
+		span.SetStatus(codes.Error, errs.ErrPartRequired.Error())
 		return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrPartRequired)
 	}
 	userUuid, ok := auth.UserUUIDFromContext(ctx)
 	if !ok {
+		span.RecordError(errs.ErrUnauthorized)
+		span.SetStatus(codes.Error, errs.ErrUnauthorized.Error())
 		return model.Order{}, fmt.Errorf("создать заказ: %w", errs.ErrUnauthorized)
 	}
 
+	order, err := s.createOrderTx(ctx, req, userUuid)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return model.Order{}, err
+	}
+
+	span.SetAttributes(
+		attribute.String("order.uuid", order.UUID.String()),
+		attribute.Int64("order.total_price", order.TotalPrice),
+		attribute.String("order.status", string(order.Status)),
+	)
+	span.SetStatus(codes.Ok, "заказ успешно создан")
+
+	slog.Info("заказ успешно создан",
+		slog.String("order_uuid", order.UUID.String()),
+		slog.String("user_uuid", order.UserUUID.String()),
+		slog.Int64("total_price", order.TotalPrice),
+		slog.String("status", string(order.Status)),
+		slog.Any("part_uuids", req.AssemblePartUUIDs()),
+	)
+	ordersCreatedTotal.Add(ctx, 1)
+
+	return order, nil
+}
+
+func (s *Service) createOrderTx(ctx context.Context, req model.CreateOrderRequest, userUuid uuid.UUID) (model.Order, error) {
 	var order model.Order
 
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {

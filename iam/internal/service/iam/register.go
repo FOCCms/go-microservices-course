@@ -3,6 +3,7 @@ package iam
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,6 +41,11 @@ func (s *Service) Register(ctx context.Context, input input.RegisterInput) (uuid
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("зарегистрировать пользователя: %w", err)
 	}
+
+	slog.Info("пользователь успешно зарегистрирован",
+		slog.String("user_uuid", user.UUID.String()),
+		slog.String("login", user.Login),
+	)
 
 	return user.UUID, nil
 }

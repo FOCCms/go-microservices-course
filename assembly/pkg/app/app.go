@@ -32,6 +32,7 @@ func New(producer sarama.SyncProducer, cg sarama.ConsumerGroup, cfg Config) *App
 		},
 		wrappedKafkaConsumer.WithMiddlewares(
 			kafkaMiddleware.ConsumerLogging(),
+			kafkaMiddleware.ConsumerSession(),
 		),
 	)
 
