@@ -10,13 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FOCCms/go-microservices-course/platform/pkg/ratelimit"
 	"github.com/go-redis/redis_rate/v10"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	tcredis "github.com/testcontainers/testcontainers-go/modules/redis"
+
+	"github.com/FOCCms/go-microservices-course/platform/pkg/ratelimit"
 )
 
 // startRateLimitRedis поднимает Redis в testcontainer и возвращает host:port.

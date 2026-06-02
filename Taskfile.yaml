@@ -350,22 +350,28 @@ tasks:
   containers:up-all:
     desc: "Поднять инфраструктуру + сервисы (3 инстанса OrderService)"
     cmds:
-      - task: up-core
+      - task up-core
+      - task up-inventory
+      - task up-order
+      - task up-iam
       - >-
         docker compose
         --env-file core.env
         -f deploy/compose/services/docker-compose.yml
         up -d --build --scale order-service=3
 
-    containers:down-all:
-      desc: "Остановить всё"
-      cmds:
-        - >-
-          docker compose
-          -f deploy/compose/services/docker-compose.yml
-          down
-        - task: down-core
-
+  containers:down-all:
+    desc: "Остановить всё"
+    cmds:
+      - >-
+        docker compose
+        --env-file core.env
+        -f deploy/compose/services/docker-compose.yml
+        down
+      - task down-iam
+      - task down-order
+      - task down-inventory
+      - task down-core
 
   migrate:order:up:
     desc: "Применяет все миграции Order-сервиса"

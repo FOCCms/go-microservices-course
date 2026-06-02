@@ -16,6 +16,7 @@ import (
 	"github.com/FOCCms/go-microservices-course/platform/pkg/closer"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/logger"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/metrics"
+	"github.com/FOCCms/go-microservices-course/platform/pkg/ratelimit"
 	"github.com/FOCCms/go-microservices-course/platform/pkg/tracing"
 )
 
@@ -47,7 +48,7 @@ func (a *App) initDeps(ctx context.Context) error {
 }
 
 func (a *App) initMetrics(_ context.Context) {
-	metrics.Init(config.AppConfig().OtelConfig.ServiceName)
+	metrics.Init(config.AppConfig().OtelConfig.ServiceName, config.AppConfig().OtelConfig.Endpoint)
 }
 
 func (a *App) initTracing(ctx context.Context) error {
@@ -99,6 +100,12 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	handler := authMiddleware(orderServer)
 	handler = middleware.ErrorsMiddleware(handler)
 	handler = otelhttp.NewHandler(handler, config.AppConfig().OtelConfig.ServiceName)
+
+	limiter, err := a.diContainer.RateLimiter()
+	if err != nil {
+		return fmt.Errorf("инициализировать http сервер: %w", err)
+	}
+	handler = ratelimit.Middleware(limiter, config.AppConfig().RateLimit.Rate, config.AppConfig().RateLimit.Burst)(handler)
 
 	a.httpServer = &http.Server{
 		Addr:              config.AppConfig().HTTP.Addr(),

@@ -3,12 +3,15 @@ package app
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/IBM/sarama"
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
 	"github.com/avito-tech/go-transaction-manager/trm/v2/manager"
+	"github.com/go-redis/redis_rate/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -29,6 +32,7 @@ import (
 	wrappedKafkaConsumer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/consumer"
 	wrappedKafkaProducer "github.com/FOCCms/go-microservices-course/platform/pkg/kafka/producer"
 	kafkaMiddleware "github.com/FOCCms/go-microservices-course/platform/pkg/middleware/kafka"
+	platformRedis "github.com/FOCCms/go-microservices-course/platform/pkg/redis"
 	orderv1 "github.com/FOCCms/go-microservices-course/shared/pkg/openapi/order/v1"
 	authv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/auth/v1"
 	inventoryv1 "github.com/FOCCms/go-microservices-course/shared/pkg/proto/inventory/v1"
@@ -57,6 +61,9 @@ type diContainer struct {
 
 	orderProducerService    orderSrv.OrderProducerService
 	assemblyConsumerService ConsumerService
+
+	redisClient *redis.Client
+	limiter     *redis_rate.Limiter
 }
 
 type ConsumerService interface {
@@ -352,4 +359,36 @@ func (d *diContainer) AssemblyConsumerService(ctx context.Context) (ConsumerServ
 	}
 
 	return d.assemblyConsumerService, nil
+}
+
+func (d *diContainer) LimiterRDB() (*redis.Client, error) {
+	if d.redisClient == nil {
+		rdb, err := platformRedis.NewClient(&redis.Options{
+			Addr: config.AppConfig().RateLimit.Address,
+		}, slog.Default())
+		if err != nil {
+			return nil, fmt.Errorf("создать клиент LimiterRDB: %w", err)
+		}
+
+		closer.Add("LimiterRDBClient", func(_ context.Context) error {
+			return rdb.Close()
+		})
+
+		d.redisClient = rdb
+	}
+
+	return d.redisClient, nil
+}
+
+func (d *diContainer) RateLimiter() (*redis_rate.Limiter, error) {
+	if d.limiter == nil {
+		rdb, err := d.LimiterRDB()
+		if err != nil {
+			return nil, fmt.Errorf("инициализировать RateLimiter: %w", err)
+		}
+
+		d.limiter = redis_rate.NewLimiter(rdb)
+	}
+
+	return d.limiter, nil
 }
