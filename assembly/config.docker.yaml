@@ -1,0 +1,22 @@
+stage: "docker"
+
+kafka:
+  brokers:
+    - "kafka:29092"
+
+order_paid_consumer:
+  topic: "order.paid"
+  group: "assembly-service"
+
+ship_assembled_producer:
+  topic: "ship.assembled"
+
+shutdown_config:
+  shutdown_timeout: "10s"
+
+logger:
+  level: "info"
+
+otel:
+  endpoint: "otel-collector:4317"
+  service_name: "assembly-service"

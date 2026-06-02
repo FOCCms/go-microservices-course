@@ -1,9 +1,9 @@
-stage: "development"
+stage: "docker"
 service_version: "0.0.1"
 
 http:
   host: "0.0.0.0"
-  port: "8081"
+  port: "8080"
   read_header_timeout: "5s"
   read_timeout: "15s"
   write_timeout: "15s"
@@ -13,7 +13,7 @@ logger:
   level: "info"
 
 pg:
-  host: "localhost"
+  host: "postgres-order"
   port: "5432"
   database: "order-service"
   user: "order-service-user"
@@ -22,29 +22,29 @@ pg:
 
 kafka:
   brokers:
-    - "localhost:9092"
+    - "kafka:29092"
 
 order_paid_producer:
-  topic: "order.paid"
+  topic_name: "order.paid"
 
 ship_assembled_consumer_config:
   topic: "ship.assembled"
   group: "order-service"
 
 inventory_client:
-  address: "localhost:50051"
+  address: "inventory-service:50051"
   keepalive_time: "60s"
   keepalive_timeout: "20s"
   permit_without_stream: true
 
 payment_client:
-  address: "localhost:50052"
+  address: "payment-service:50052"
   keepalive_time: "60s"
   keepalive_timeout: "20s"
   permit_without_stream: true
 
 iam_client:
-  address: "localhost:50053"
+  address: "iam-service:50053"
   keepalive_time: "60s"
   keepalive_timeout: "20s"
   permit_without_stream: true
@@ -53,13 +53,13 @@ shutdown_config:
   shutdown_timeout: "10s"
 
 otel:
-  endpoint: "localhost:4317"
+  endpoint: "otel-collector:4317"
   service_name: "order-service"
 
 tracing_config:
   sampling_ratio: 1.0
 
 rate_limit:
-  redis_address: "localhost:6379"
+  redis_address: "redis-ratelimit:6379"
   rate: 100
   burst: 200
