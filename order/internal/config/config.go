@@ -24,6 +24,7 @@ type Config struct {
 	ShutdownConfig        ShutdownConfig              `yaml:"shutdown_config"`
 	OtelConfig            otelConfig                  `yaml:"otel"`
 	TracingConfig         tracingConfig               `yaml:"tracing_config"`
+	RateLimit             rateLimitConfig             `yaml:"rate_limit"`
 }
 
 var appConfig *Config

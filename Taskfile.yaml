@@ -35,6 +35,9 @@ vars:
   ELASTICSEARCH_URL: 'http://localhost:9200'
   LOGS_INDEX_PATTERN: 'otel-logs*'
 
+  VEGETA_VERSION: 'v12.13.0'
+  VEGETA: '{{.BIN_DIR}}/vegeta'
+
 tasks:
   formatters:install:
     desc: "Устанавливает gofumpt и gci"
@@ -344,6 +347,31 @@ tasks:
       - task down-inventory
       - task down-core
 
+  containers:up-all:
+    desc: "Поднять инфраструктуру + сервисы (3 инстанса OrderService)"
+    cmds:
+      - task up-core
+      - task up-inventory
+      - task up-order
+      - task up-iam
+      - >-
+        docker compose
+        --env-file core.env
+        -f deploy/compose/services/docker-compose.yml
+        up -d --build --scale order-service=3
+
+  containers:down-all:
+    desc: "Остановить всё"
+    cmds:
+      - >-
+        docker compose
+        --env-file core.env
+        -f deploy/compose/services/docker-compose.yml
+        down
+      - task down-iam
+      - task down-order
+      - task down-inventory
+      - task down-core
 
   migrate:order:up:
     desc: "Применяет все миграции Order-сервиса"
@@ -542,3 +570,32 @@ tasks:
     cmds:
       - task: es:wait
       - task: es:create-template
+
+  vegeta:install:
+    desc: "Устанавливает vegeta (HTTP нагрузочное тестирование)"
+    cmds:
+      - GOBIN={{.BIN_DIR}} go install github.com/tsenart/vegeta/v12@{{.VEGETA_VERSION}}
+    status:
+      - test -x {{.VEGETA}}
+
+  load:http:
+    desc: "Нагрузочный тест HTTP: POST с нарастающей нагрузкой (50 → 500 RPS за 2.5 мин)"
+    deps: [vegeta:install]
+    cmds:
+      - |
+        VEGETA="{{.VEGETA}}"
+        RESULTS_DIR=$(mktemp -d)
+        BODY_FILE="$RESULTS_DIR/body.json"
+        echo '{"hull_uuid":"test-hull","engine_uuid":"test-engine"}' > "$BODY_FILE"
+        trap 'rm -rf "$RESULTS_DIR"' EXIT
+        
+        for rate in 50 100 150 200 250 300 350 400 450 500; do
+          echo "⏱️  ступень: ${rate} RPS (15 сек)"
+          echo "POST http://localhost:8080/api/v1/orders" | \
+            $VEGETA attack -rate="${rate}/s" -duration=15s \
+              -body="$BODY_FILE" -header="Content-Type: application/json" | \
+            $VEGETA encode --to json >> "$RESULTS_DIR/results.json"
+        done
+        
+        $VEGETA report -type=json < "$RESULTS_DIR/results.json"
+
